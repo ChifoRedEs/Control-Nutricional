@@ -30,7 +30,7 @@ function getDayItems(d) {
 }
 
 function evaluateTolerance(val, target, isMaxCap) {
-  const margin = state.t.m / 100;
+  const margin = (state.t.m || 5) / 100;
   if (isMaxCap) return val > target * (1 + margin) ? 'bd' : val > target ? 'wa' : 'ok';
   const err = Math.abs(val - target) / (target || 1);
   return err <= margin ? 'ok' : err <= 2 * margin ? 'wa' : 'bd';
@@ -114,6 +114,105 @@ function renderWeek() {
     renderChips(weeklyTotals, 7);
 }
 
+function generateBalancedWeek() {
+  const dishes = getAllDishes();
+  const foods = getAllFoods();
+  const comidas = dishes.filter(d => d.t === 'comida');
+  const cenas = dishes.filter(d => d.t === 'cena');
+
+  if (!comidas.length || !cenas.length) {
+    return alert('Debes tener al menos una comida y una cena disponibles.');
+  }
+
+  const T = state.t;
+  const targetWeek = { k: T.k * 7, p: T.p * 7, g: T.g * 7, h: T.h * 7 };
+
+  // Precalcular macros de cada plato
+  const mealMacros = (d) => calcNutrients(d.i, foods);
+  const baseDayMacros = (isTraining) => calcNutrients([...BASE_MEALS.desayuno, ...BASE_MEALS.almuerzo, ...(isTraining ? BASE_MEALS.meriendaEntreno : BASE_MEALS.meriendaDescanso)], foods);
+
+  let bestPlan = null;
+  let bestScore = Infinity;
+
+  // Realizamos 250 simulaciones heurísticas y seleccionamos la que clava el verde en todos los macros
+  for (let sim = 0; sim < 250; sim++) {
+    const candidatePlan = [];
+    const acc = { k: 0, p: 0, g: 0, h: 0 };
+    const usedC = [];
+    const usedN = [];
+
+    for (let day = 0; day < 7; day++) {
+      const isTraining = state.plan[day].e;
+      const base = baseDayMacros(isTraining);
+      
+      // Peso de compensación para días restantes
+      const daysLeft = 7 - day;
+      const neededKcalDay = (targetWeek.k - acc.k) / daysLeft;
+      const neededProtDay = (targetWeek.p - acc.p) / daysLeft;
+      const neededFatDay = (targetWeek.g - acc.g) / daysLeft;
+      const neededCarbDay = (targetWeek.h - acc.h) / daysLeft;
+
+      let bestPair = null;
+      let bestDayDiff = Infinity;
+
+      // Barajar candidatos para añadir aleatoriedad y variedad
+      const shuffledComidas = [...comidas].sort(() => 0.5 - Math.random()).slice(0, 8);
+      const shuffledCenas = [...cenas].sort(() => 0.5 - Math.random()).slice(0, 8);
+
+      for (const c of shuffledComidas) {
+        const cM = mealMacros(c);
+        for (const n of shuffledCenas) {
+          const nM = mealMacros(n);
+          const dayK = base.k + cM.k + nM.k;
+          const dayP = base.p + cM.p + nM.p;
+          const dayG = base.g + cM.g + nM.g;
+          const dayH = base.h + cM.h + nM.h;
+
+          // Penalización si el plato se repitió inmediatamente
+          const repPenalty = (usedC[usedC.length - 1] === c.n ? 1.5 : 1) * (usedN[usedN.length - 1] === n.n ? 1.5 : 1);
+
+          const diff = (
+            Math.abs(dayK - neededKcalDay) / T.k +
+            Math.abs(dayP - neededProtDay) / T.p +
+            Math.abs(dayG - neededFatDay) / T.g +
+            Math.abs(dayH - neededCarbDay) / T.h
+          ) * repPenalty;
+
+          if (diff < bestDayDiff) {
+            bestDayDiff = diff;
+            bestPair = { c: c.n, n: n.n, dayNuts: { k: dayK, p: dayP, g: dayG, h: dayH } };
+          }
+        }
+      }
+
+      candidatePlan.push({ c: bestPair.c, n: bestPair.n, e: isTraining });
+      usedC.push(bestPair.c);
+      usedN.push(bestPair.n);
+      acc.k += bestPair.dayNuts.k;
+      acc.p += bestPair.dayNuts.p;
+      acc.g += bestPair.dayNuts.g;
+      acc.h += bestPair.dayNuts.h;
+    }
+
+    // Puntaje de ajuste global de la semana
+    const totalScore = (
+      Math.abs(acc.k - targetWeek.k) / targetWeek.k +
+      Math.abs(acc.p - targetWeek.p) / targetWeek.p +
+      Math.abs(acc.g - targetWeek.g) / targetWeek.g +
+      Math.abs(acc.h - targetWeek.h) / targetWeek.h
+    );
+
+    if (totalScore < bestScore) {
+      bestScore = totalScore;
+      bestPlan = candidatePlan;
+    }
+  }
+
+  state.plan = bestPlan;
+  saveState();
+  renderAll();
+}
+
 function renderShop() {
   const foods = getAllFoods();
   const totals = {};
@@ -138,7 +237,7 @@ function renderShop() {
       const unitInfo = f.u ? ' · ≈ ' + (totals[name] / f.u).toFixed(1) + ' ' + esc(f.un || 'ud') : '';
       const isChecked = !!state.chk[name];
       return '<label class="it ' + (isChecked ? 'd' : '') + '">' +
-        '<input type="checkbox" data-k="' + esc(name) + '" ' + (isChecked ? 'checked' : '') + '>' +
+        '<input type="checkbox" data-k="' + esc(name)}" ' + (isChecked ? 'checked' : '') + '>' +
         '<span>' + esc(name) + '</span>' +
         '<em>' + formatQty(totals[name]) + unitInfo + '</em>' +
       '</label>';
@@ -232,19 +331,7 @@ function bindEvents() {
     renderShop();
   };
 
-  $('#rnd').onclick = () => {
-    const dishes = getAllDishes();
-    const pick = type => {
-      const pool = dishes.filter(d => d.t === type);
-      return pool[Math.floor(Math.random() * pool.length)]?.n || '';
-    };
-    state.plan.forEach(day => {
-      day.c = pick('comida');
-      day.n = pick('cena');
-    });
-    saveState();
-    renderAll();
-  };
+  $('#rnd').onclick = generateBalancedWeek;
 
   $('#clr').onclick = () => {
     state.plan.forEach(day => { day.c = ''; day.n = ''; });
