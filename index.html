@@ -24,8 +24,9 @@
   <main>
     <section id="a" class="tab on" role="tabpanel">
       <div class="row mb-2">
-        <button class="btn s" id="rnd">🎲 Semana aleatoria equilibrada</button>
-        <button class="btn r" id="clr">Vaciar semana</button>
+        <button class="btn s" id="rnd">🎲 Semana equilibrada (Auto-Ajuste)</button>
+        <button class="btn s" id="open-menu-modal">📋 Ver Menú Semanal Completo</button>
+        <button class="btn r x" id="clr">Vaciar</button>
       </div>
       <div id="wk"></div>
       <div class="card" id="sum"></div>
@@ -134,6 +135,19 @@
       </div>
     </section>
   </main>
+
+  <!-- MODAL: MENÚ SEMANAL COMPLETO -->
+  <dialog id="menu-modal" class="modal">
+    <div class="modal-header">
+      <h2>📋 Menú Semanal Completo</h2>
+      <button class="btn r x" id="close-menu-modal">✕</button>
+    </div>
+    <div class="modal-body" id="menu-modal-content"></div>
+    <div class="modal-footer">
+      <button class="btn s" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button>
+      <button class="btn" id="close-menu-modal-btn">Cerrar</button>
+    </div>
+  </dialog>
 
   <datalist id="foods-dl"></datalist>
   <script type="module" src="js/app.js"></script>
