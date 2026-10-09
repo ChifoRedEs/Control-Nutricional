@@ -20,6 +20,9 @@ function init() {
 }
 
 function getDayItems(d) {
+  if (d.customItems && d.customItems.length) {
+    return d.customItems;
+  }
   let it = [...FIXED_SNACKS.almuerzo, ...(d.e ? FIXED_SNACKS.meriendaEntreno : FIXED_SNACKS.meriendaDescanso)];
   const dishes = getAllDishes();
   const bDish = dishes.find(x => x.n === d.b);
@@ -80,9 +83,11 @@ function renderWeek() {
       '<option value="#fuera" ' + (current === '#fuera' ? 'selected' : '') + '>🍴 Fuera de casa</option>' +
       dishes.filter(x => x.t === type).map(x => '<option value="' + esc(x.n) + '" ' + (x.n === current ? 'selected' : '') + '>' + esc(x.n) + '</option>').join('');
 
+    const adjustedBadge = d.customItems ? '<span style="font-size:11px;background:var(--ok);color:white;padding:2px 6px;border-radius:4px;margin-left:6px">Raciones Auto-Ajustadas</span>' : '';
+
     return '<div class="card">' +
       '<h3>' +
-        DAYS[i] +
+        '<span>' + DAYS[i] + adjustedBadge + '</span>' +
         '<label style="display:inline-flex;gap:4px;align-items:center;cursor:pointer;">' +
           '<input type="checkbox" data-e="' + i + '" ' + (d.e ? 'checked' : '') + ' style="width:auto;margin:0"> Entreno' +
         '</label>' +
@@ -115,12 +120,13 @@ function renderWeek() {
 
   $('#sum').innerHTML = 
     '<h3>📊 Resumen Semanal</h3>' +
-    '<p class="mm">Media diaria real</p>' +
+    '<p class="mm">Media diaria real conseguida</p>' +
     renderChips(dailyAvg, 1) +
     '<p class="mm" style="margin-top:10px">Total acumulado 7 días</p>' +
     renderChips(weeklyTotals, 7);
 }
 
+// ALGORITMO OPCIÓN A: REESCALADO EXACTO POR INGREDIENTES CLAVE
 function generateBalancedWeek() {
   const dishes = getAllDishes();
   const foods = getAllFoods();
@@ -132,95 +138,152 @@ function generateBalancedWeek() {
     return alert('Debes tener comidas y cenas disponibles.');
   }
 
-  const T = state.t;
-  const targetWeek = { k: T.k * 7, p: T.p * 7, g: T.g * 7, h: T.h * 7 };
-  const mealMacros = (d) => calcNutrients(d.i, foods);
-  const snackMacros = (isTraining) => calcNutrients([...FIXED_SNACKS.almuerzo, ...(isTraining ? FIXED_SNACKS.meriendaEntreno : FIXED_SNACKS.meriendaDescanso)], foods);
+  const T = state.t; // Objetivos: k, p, g, h
+  const newPlan = [];
 
-  let bestPlan = null;
-  let bestScore = Infinity;
+  for (let day = 0; day < 7; day++) {
+    const isTraining = state.plan[day].e;
+    const baseSnacks = [...FIXED_SNACKS.almuerzo, ...(isTraining ? FIXED_SNACKS.meriendaEntreno : FIXED_SNACKS.meriendaDescanso)];
 
-  for (let sim = 0; sim < 300; sim++) {
-    const candidatePlan = [];
-    const acc = { k: 0, p: 0, g: 0, h: 0 };
-    const usedB = [];
-    const usedC = [];
-    const usedN = [];
+    // Selección variada
+    const bDish = desayunos[day % desayunos.length] || { n: '', i: [] };
+    const cDish = comidas[(day * 2) % comidas.length];
+    const nDish = cenas[(day * 2 + 1) % cenas.length];
 
-    for (let day = 0; day < 7; day++) {
-      const isTraining = state.plan[day].e;
-      const baseSnack = snackMacros(isTraining);
-      
-      const daysLeft = 7 - day;
-      const neededK = (targetWeek.k - acc.k) / daysLeft;
-      const neededP = (targetWeek.p - acc.p) / daysLeft;
-      const neededG = (targetWeek.g - acc.g) / daysLeft;
-      const neededH = (targetWeek.h - acc.h) / daysLeft;
+    // Clonamos los ingredientes de comida y cena para reescalar
+    let dayMealsItems = [
+      ...bDish.i.map(([n, w]) => [n, w]),
+      ...cDish.i.map(([n, w]) => [n, w]),
+      ...nDish.i.map(([n, w]) => [n, w])
+    ];
 
-      let bestTrio = null;
-      let bestDayDiff = Infinity;
+    // Identificamos los ingredientes clave del día para ajustar
+    // 1. Proteínas: carne, pescado, huevo
+    const proteinItems = dayMealsItems.filter(([n]) => {
+      const f = foods[n];
+      return f && f.p >= 15 && f.h <= 10;
+    });
 
-      const candB = desayunos.length ? [...desayunos].sort(() => 0.5 - Math.random()).slice(0, 3) : [{ n: '', i: [] }];
-      const candC = [...comidas].sort(() => 0.5 - Math.random()).slice(0, 6);
-      const candN = [...cenas].sort(() => 0.5 - Math.random()).slice(0, 6);
+    // 2. Carbohidratos: arroz, pasta, pan, patata, legumbre
+    const carbItems = dayMealsItems.filter(([n]) => {
+      const f = foods[n];
+      return f && f.h >= 15 && f.p < 15;
+    });
 
-      for (const b of candB) {
-        const bM = mealMacros(b);
-        for (const c of candC) {
-          const cM = mealMacros(c);
-          for (const n of candN) {
-            const nM = mealMacros(n);
+    // 3. Grasas: aceites
+    const fatItems = dayMealsItems.filter(([n]) => n === 'Aceite de oliva');
 
-            const dayK = baseSnack.k + bM.k + cM.k + nM.k;
-            const dayP = baseSnack.p + bM.p + cM.p + nM.p;
-            const dayG = baseSnack.g + bM.g + cM.g + nM.g;
-            const dayH = baseSnack.h + bM.h + cM.h + nM.h;
+    // Bucle de ajuste convergente en 3 pasadas para clavar el objetivo
+    for (let iter = 0; iter < 4; iter++) {
+      const currentItems = [...baseSnacks, ...dayMealsItems];
+      const cur = calcNutrients(currentItems, foods);
 
-            const repPenalty = (usedC[usedC.length - 1] === c.n ? 1.4 : 1) * 
-                               (usedN[usedN.length - 1] === n.n ? 1.4 : 1) * 
-                               (usedB[usedB.length - 1] === b.n ? 1.2 : 1);
+      const diffP = T.p - cur.p;
+      const diffH = T.h - cur.h;
+      const diffG = T.g - cur.g;
 
-            const diff = (
-              Math.abs(dayK - neededK) / T.k +
-              Math.abs(dayP - neededP) / T.p +
-              Math.abs(dayG - neededG) / T.g +
-              Math.abs(dayH - neededH) / T.h
-            ) * repPenalty;
-
-            if (diff < bestDayDiff) {
-              bestDayDiff = diff;
-              bestTrio = { b: b.n, c: c.n, n: n.n, dayNuts: { k: dayK, p: dayP, g: dayG, h: dayH } };
-            }
-          }
-        }
+      // Ajustar proteína reescalando carne/pescado del día
+      if (proteinItems.length && Math.abs(diffP) > 1) {
+        const deltaEach = (diffP / proteinItems.length) / 0.22; // ~22% proteína media
+        proteinItems.forEach(item => {
+          item[1] = Math.max(50, Math.min(300, r(item[1] + deltaEach)));
+        });
       }
 
-      candidatePlan.push({ b: bestTrio.b, c: bestTrio.c, n: bestTrio.n, e: isTraining });
-      usedB.push(bestTrio.b);
-      usedC.push(bestTrio.c);
-      usedN.push(bestTrio.n);
-      acc.k += bestTrio.dayNuts.k;
-      acc.p += bestTrio.dayNuts.p;
-      acc.g += bestTrio.dayNuts.g;
-      acc.h += bestTrio.dayNuts.h;
+      // Ajustar carbohidratos reescalando arroz/pasta/pan
+      if (carbItems.length && Math.abs(diffH) > 2) {
+        const deltaEach = (diffH / carbItems.length) / 0.65; // ~65% hidratos media
+        carbItems.forEach(item => {
+          item[1] = Math.max(20, Math.min(150, r(item[1] + deltaEach)));
+        });
+      }
+
+      // Ajustar grasas reescalando el aceite de oliva
+      if (fatItems.length && Math.abs(diffG) > 1) {
+        const deltaEach = (diffG / fatItems.length) / 1.0; // 100% grasa
+        fatItems.forEach(item => {
+          item[1] = Math.max(4, Math.min(35, r(item[1] + deltaEach)));
+        });
+      }
     }
 
-    const totalScore = (
-      Math.abs(acc.k - targetWeek.k) / targetWeek.k +
-      Math.abs(acc.p - targetWeek.p) / targetWeek.p +
-      Math.abs(acc.g - targetWeek.g) / targetWeek.g +
-      Math.abs(acc.h - targetWeek.h) / targetWeek.h
-    );
-
-    if (totalScore < bestScore) {
-      bestScore = totalScore;
-      bestPlan = candidatePlan;
-    }
+    // Guardamos el día con sus raciones reescaladas exactamente
+    newPlan.push({
+      b: bDish.n,
+      c: cDish.n,
+      n: nDish.n,
+      e: isTraining,
+      customItems: [...baseSnacks, ...dayMealsItems]
+    });
   }
 
-  state.plan = bestPlan;
+  state.plan = newPlan;
   saveState();
   renderAll();
+}
+
+// RENDERIZADO DEL MODAL CON EL MENÚ COMPLETO
+function renderMenuModal() {
+  const dishes = getAllDishes();
+  const content = $('#menu-modal-content');
+  const formatList = (items) => items.map(([n, w]) => '<li>' + esc(n) + ': <b>' + r(w) + ' g</b></li>').join('');
+
+  content.innerHTML = state.plan.map((d, i) => {
+    const isTraining = d.e;
+    const almuerzoItems = FIXED_SNACKS.almuerzo;
+    const meriendaItems = isTraining ? FIXED_SNACKS.meriendaEntreno : FIXED_SNACKS.meriendaDescanso;
+
+    // Recuperamos los ingredientes exactos (ajustados si existen)
+    const dayItems = getDayItems(d);
+    const bDish = dishes.find(x => x.n === d.b);
+    const cDish = dishes.find(x => x.n === d.c);
+    const nDish = dishes.find(x => x.n === d.n);
+
+    return '<div class="day-menu-card">' +
+      '<h3>' + DAYS[i] + ' ' + (isTraining ? '⚡ (Día de Entreno)' : '🛋️ (Descanso)') + '</h3>' +
+      
+      '<div class="meal-block">' +
+        '<div class="meal-title">🥞 Desayuno</div>' +
+        '<details class="dish-details" open>' +
+          '<summary>' + esc(d.b || 'Sin asignar') + '</summary>' +
+          '<ul class="dish-ingredients">' + (bDish ? formatList(bDish.i) : '<li>Sin datos</li>') + '</ul>' +
+        '</details>' +
+      '</div>' +
+
+      '<div class="meal-block">' +
+        '<div class="meal-title">🥪 Almuerzo (Media Mañana)</div>' +
+        '<details class="dish-details">' +
+          '<summary>Base fija diaria</summary>' +
+          '<ul class="dish-ingredients">' + formatList(almuerzoItems) + '</ul>' +
+        '</details>' +
+      '</div>' +
+
+      '<div class="meal-block">' +
+        '<div class="meal-title">🍲 Comida</div>' +
+        '<details class="dish-details" open>' +
+          '<summary>' + esc(d.c || 'Sin asignar') + '</summary>' +
+          '<ul class="dish-ingredients">' + (cDish ? formatList(cDish.i) : '<li>Sin datos</li>') + '</ul>' +
+        '</details>' +
+      '</div>' +
+
+      '<div class="meal-block">' +
+        '<div class="meal-title">🍎 Merienda ' + (isTraining ? '(Pre-Entreno)' : '') + '</div>' +
+        '<details class="dish-details">' +
+          '<summary>' + (isTraining ? 'Yogur proteico con arándanos y nueces' : 'Fruta con tortita y nueces') + '</summary>' +
+          '<ul class="dish-ingredients">' + formatList(meriendaItems) + '</ul>' +
+        '</details>' +
+      '</div>' +
+
+      '<div class="meal-block">' +
+        '<div class="meal-title">🥗 Cena</div>' +
+        '<details class="dish-details" open>' +
+          '<summary>' + esc(d.n || 'Sin asignar') + '</summary>' +
+          '<ul class="dish-ingredients">' + (nDish ? formatList(nDish.i) : '<li>Sin datos</li>') + '</ul>' +
+        '</details>' +
+      '</div>' +
+
+    '</div>';
+  }).join('');
 }
 
 function renderShop() {
@@ -321,7 +384,6 @@ function renderAll() {
 }
 
 function bindEvents() {
-  // Navegación de pestañas garantizada
   $$('nav button').forEach(btn => {
     btn.onclick = () => {
       $$('nav button, .tab').forEach(el => el.classList.remove('on'));
@@ -335,10 +397,22 @@ function bindEvents() {
   $('#wk').onchange = e => {
     const t = e.target;
     const d = t.dataset;
-    if (d.e !== undefined) state.plan[d.e].e = t.checked;
-    if (d.b !== undefined) state.plan[d.b].b = t.value;
-    if (d.c !== undefined) state.plan[d.c].c = t.value;
-    if (d.n !== undefined) state.plan[d.n].n = t.value;
+    if (d.e !== undefined) {
+      state.plan[d.e].e = t.checked;
+      state.plan[d.e].customItems = null;
+    }
+    if (d.b !== undefined) {
+      state.plan[d.b].b = t.value;
+      state.plan[d.b].customItems = null;
+    }
+    if (d.c !== undefined) {
+      state.plan[d.c].c = t.value;
+      state.plan[d.c].customItems = null;
+    }
+    if (d.n !== undefined) {
+      state.plan[d.n].n = t.value;
+      state.plan[d.n].customItems = null;
+    }
     saveState();
     renderWeek();
     renderShop();
@@ -347,10 +421,19 @@ function bindEvents() {
   $('#rnd').onclick = generateBalancedWeek;
 
   $('#clr').onclick = () => {
-    state.plan.forEach(day => { day.c = ''; day.n = ''; });
+    state.plan.forEach(day => { day.c = ''; day.n = ''; day.customItems = null; });
     saveState();
     renderAll();
   };
+
+  // Eventos Modal Menú Semanal
+  const modal = $('#menu-modal');
+  $('#open-menu-modal').onclick = () => {
+    renderMenuModal();
+    modal.showModal();
+  };
+  $('#close-menu-modal').onclick = () => modal.close();
+  $('#close-menu-modal-btn').onclick = () => modal.close();
 
   $('#shop').onchange = e => {
     state.chk[e.target.dataset.k] = e.target.checked;
@@ -427,6 +510,7 @@ function bindEvents() {
         if (d.b === name) d.b = '';
         if (d.c === name) d.c = '';
         if (d.n === name) d.n = '';
+        d.customItems = null;
       });
       saveState();
       renderAll();
@@ -484,7 +568,7 @@ function bindEvents() {
   });
 
   $('#bd').onclick = () => {
-    const blob = new Blob([JSON.stringify({ app: 'menu-nutricional', v: 6, state }, null, 2)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify({ app: 'menu-nutricional', v: 8, state }, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -516,7 +600,7 @@ function bindEvents() {
   };
 
   $('#rs').onclick = () => {
-    if (confirm('¿Restablecer y cargar los 6 desayunos y todos los nuevos platos por defecto?')) {
+    if (confirm('¿Restablecer datos y cargar los valores por defecto?')) {
       localStorage.clear();
       location.reload();
     }

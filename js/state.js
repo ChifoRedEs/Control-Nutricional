@@ -1,7 +1,7 @@
 import { DEFAULT_FOODS } from './data/foods.js';
 import { DEFAULT_DISHES } from './data/dishes.js';
 
-const STORAGE_KEY = 'menu_nutricional_v6';
+const STORAGE_KEY = 'menu_nutricional_v8';
 
 export const state = {
   foods: {},
@@ -13,16 +13,15 @@ export const state = {
     b: 'Desayuno clásico: Avena, matcha, aguacate y jamón cocido',
     c: '',
     n: '',
-    e: false
+    e: false,
+    customItems: null // Aquí guardamos los gramos reales reescalados
   }))
 };
 
 export function loadState() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY) || 
-                localStorage.getItem('menu_nutricional_v4') ||
-                localStorage.getItem('menu_nutricional_v3') || 
-                localStorage.getItem('menu_nutricional_v2') || 
+                localStorage.getItem('menu_nutricional_v6') || 
                 localStorage.getItem('mp1');
     if (!raw) return;
     const loaded = JSON.parse(raw);
@@ -34,7 +33,8 @@ export function loadState() {
         b: p.b || 'Desayuno clásico: Avena, matcha, aguacate y jamón cocido',
         c: p.c || '',
         n: p.n || '',
-        e: !!p.e
+        e: !!p.e,
+        customItems: p.customItems || null
       })) : state.plan
     });
   } catch (e) {
