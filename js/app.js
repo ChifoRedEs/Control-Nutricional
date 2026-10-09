@@ -266,8 +266,8 @@ function renderDishes() {
         '<h3>' +
           esc(d.n) +
           '<span style="display:flex;gap:4px">' +
-            '<button class="btn s" data-ed="' + esc(d.n)}" aria-label="Editar" style="padding:4px 8px">✏️</button>' +
-            '<button class="btn r" data-del="' + esc(d.n)}" aria-label="Eliminar" style="padding:4px 8px">✕</button>' +
+            '<button class="btn s" data-ed="' + esc(d.n) + '" aria-label="Editar" style="padding:4px 8px">✏️</button>' +
+            '<button class="btn r" data-del="' + esc(d.n) + '" aria-label="Eliminar" style="padding:4px 8px">✕</button>' +
           '</span>' +
         '</h3>' +
         '<p class="mm">' + formatNutrientSummary(calcNutrients(d.i, foods)) + '</p>' +
@@ -482,7 +482,7 @@ function bindEvents() {
   });
 
   $('#bd').onclick = () => {
-    const blob = new Blob([JSON.stringify({ app: 'menu-nutricional', v: 3, state }, null, 2)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify({ app: 'menu-nutricional', v: 4, state }, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -514,8 +514,11 @@ function bindEvents() {
   };
 
   $('#rs').onclick = () => {
-    if (confirm('¿Restablecer y borrar todos los datos personalizados?')) {
-      localStorage.clear();
+    if (confirm('¿Restablecer y cargar todos los platos y desayunos nuevos por defecto?')) {
+      localStorage.removeItem('menu_nutricional_v4');
+      localStorage.removeItem('menu_nutricional_v3');
+      localStorage.removeItem('menu_nutricional_v2');
+      localStorage.removeItem('mp1');
       location.reload();
     }
   };

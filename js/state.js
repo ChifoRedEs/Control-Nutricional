@@ -1,7 +1,7 @@
 import { DEFAULT_FOODS } from './data/foods.js';
 import { DEFAULT_DISHES } from './data/dishes.js';
 
-const STORAGE_KEY = 'menu_nutricional_v3';
+const STORAGE_KEY = 'menu_nutricional_v4';
 
 export const state = {
   foods: {},
@@ -9,14 +9,23 @@ export const state = {
   del: [],
   chk: {},
   t: { k: 2100, p: 230, g: 70, h: 140, gSat: 22, az: 35, fib: 30, m: 5 },
-  plan: Array.from({ length: 7 }, () => ({ b: 'Desayuno clásico: Avena, matcha, aguacate y jamón cocido', c: '', n: '', e: false }))
+  plan: Array.from({ length: 7 }, () => ({
+    b: 'Desayuno clásico: Avena, matcha, aguacate y jamón cocido',
+    c: '',
+    n: '',
+    e: false
+  }))
 };
 
 export function loadState() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem('menu_nutricional_v2') || localStorage.getItem('mp1');
+    const raw = localStorage.getItem(STORAGE_KEY) || 
+                localStorage.getItem('menu_nutricional_v3') || 
+                localStorage.getItem('menu_nutricional_v2') || 
+                localStorage.getItem('mp1');
     if (!raw) return;
     const loaded = JSON.parse(raw);
+
     Object.assign(state, {
       ...loaded,
       t: { ...state.t, ...(loaded.t || {}) },

@@ -6,9 +6,9 @@
   <title>Control Nutricional & Menú Semanal</title>
   <meta name="theme-color" content="#2f7d4f">
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="stylesheet" href="css/variables.css">
-  <link rel="stylesheet" href="css/layout.css">
-  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/variables.css?v=4">
+  <link rel="stylesheet" href="css/layout.css?v=4">
+  <link rel="stylesheet" href="css/components.css?v=4">
 </head>
 <body>
   <header>
@@ -49,9 +49,9 @@
 
         <label for="dt">Tipo de plato</label>
         <select id="dt">
+          <option value="desayuno">Desayuno</option>
           <option value="comida">Comida</option>
           <option value="cena">Cena</option>
-          <option value="desayuno">Desayuno</option>
         </select>
 
         <label>Ingredientes (gramos en crudo)</label>
@@ -130,12 +130,12 @@
 
       <div class="card border-danger">
         <h3 class="color-danger">Zona de peligro</h3>
-        <button class="btn r w-100" id="rs">Borrar todos los datos</button>
+        <button class="btn r w-100" id="rs">Restablecer todos los datos a la versión nueva</button>
       </div>
     </section>
   </main>
 
   <datalist id="foods-dl"></datalist>
-  <script type="module" src="js/app.js"></script>
+  <script type="module" src="js/app.js?v=4"></script>
 </body>
 </html>
