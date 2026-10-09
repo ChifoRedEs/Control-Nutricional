@@ -1,1 +1,25 @@
-...
+:root {
+  --bg: #f6f7f4;
+  --cd: #ffffff;
+  --tx: #1d2a20;
+  --mu: #6b7a6f;
+  --ac: #2f7d4f;
+  --ok: #2f7d4f;
+  --wa: #c98a00;
+  --bd: #c0392b;
+  --ln: #e3e7e1;
+  --border-radius: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #141a16;
+    --cd: #1d2620;
+    --tx: #e8efe9;
+    --mu: #93a398;
+    --ac: #4cbf7b;
+    --ok: #4cbf7b;
+    --wa: #e0a92b;
+    --bd: #e5604f;
+    --ln: #2d3a31;
+  }
+}

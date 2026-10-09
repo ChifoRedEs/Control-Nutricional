@@ -1,1 +1,90 @@
-...
+.card {
+  background: var(--cd);
+  border: 1px solid var(--ln);
+  border-radius: var(--border-radius);
+  padding: 12px;
+  margin-bottom: 12px;
+}
+.card h3 {
+  margin: 0 0 8px;
+  font-size: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+select, input, button { font: inherit; color: var(--tx); }
+select, input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--ln);
+  border-radius: 8px;
+  background: var(--bg);
+  margin: 3px 0 8px;
+}
+label { font-size: 12px; font-weight: 500; color: var(--mu); }
+.btn {
+  background: var(--ac);
+  color: #fff;
+  border: 0;
+  border-radius: 8px;
+  padding: 9px 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn.s { background: none; color: var(--ac); border: 1px solid var(--ac); }
+.btn.r { background: none; color: var(--bd); border: 1px solid var(--bd); }
+.chips-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin-top: 8px;
+}
+.chip {
+  border-radius: 8px;
+  padding: 6px 2px;
+  text-align: center;
+  font-size: 11px;
+  border: 2px solid var(--ln);
+  background: var(--bg);
+}
+.chip b { display: block; font-size: 14px; }
+.sub-chips {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  margin-top: 6px;
+  padding: 6px;
+  background: var(--bg);
+  border-radius: 8px;
+  font-size: 11px;
+  color: var(--mu);
+}
+.sub-chips span b { color: var(--tx); }
+.ok { border-color: var(--ok); }
+.wa { border-color: var(--wa); }
+.bd { border-color: var(--bd); }
+.row { display: flex; gap: 8px; align-items: center; }
+.row > * { flex: 1; }
+.row > .w { flex: 0 0 80px; }
+.row > .x { flex: 0 0 auto; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.it {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--ln);
+}
+.it input { width: 18px; height: 18px; margin: 0; flex: 0 0 auto; }
+.it span { flex: 1; }
+.it em { color: var(--mu); font-style: normal; font-size: 13px; }
+.it.d span { text-decoration: line-through; opacity: 0.5; }
+.mm { font-size: 12px; color: var(--mu); margin: 2px 0 6px; }
+.preview-box { padding: 8px; background: var(--bg); border-radius: 8px; font-size: 13px; margin: 6px 0; }
+.border-danger { border-color: var(--bd); }
+.color-danger { color: var(--bd); }
+.w-100 { width: 100%; }
+.mt-1 { margin-top: 4px; }
+.mt-2 { margin-top: 8px; }
+.mb-2 { margin-bottom: 8px; }

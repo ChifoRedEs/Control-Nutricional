@@ -1,1 +1,15 @@
-...
+{
+  "name": "Control Nutricional & Menú Semanal",
+  "short_name": "NutriMenú",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#141a16",
+  "theme_color": "#2f7d4f",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🥗</text></svg>",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}

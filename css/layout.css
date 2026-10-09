@@ -1,1 +1,31 @@
-...
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font: 15px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--tx);
+}
+header {
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  z-index: 10;
+  padding: 8px 12px 0;
+  border-bottom: 1px solid var(--ln);
+}
+header h1 { font-size: 1.15rem; margin: 0 0 6px; }
+nav { display: flex; gap: 4px; }
+nav button {
+  flex: 1;
+  padding: 10px 4px;
+  border: 0;
+  background: none;
+  color: var(--mu);
+  font: 600 14px inherit;
+  border-bottom: 3px solid transparent;
+  cursor: pointer;
+}
+nav button.on { color: var(--ac); border-color: var(--ac); }
+main { padding: 12px; max-width: 680px; margin: auto; }
+.tab { display: none; }
+.tab.on { display: block; }
