@@ -1,7 +1,7 @@
 import { DEFAULT_FOODS } from './data/foods.js';
 import { DEFAULT_DISHES } from './data/dishes.js';
 
-const STORAGE_KEY = 'menu_nutricional_v4';
+const STORAGE_KEY = 'menu_nutricional_v6';
 
 export const state = {
   foods: {},
@@ -20,6 +20,7 @@ export const state = {
 export function loadState() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY) || 
+                localStorage.getItem('menu_nutricional_v4') ||
                 localStorage.getItem('menu_nutricional_v3') || 
                 localStorage.getItem('menu_nutricional_v2') || 
                 localStorage.getItem('mp1');

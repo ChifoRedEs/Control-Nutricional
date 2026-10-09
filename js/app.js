@@ -321,11 +321,13 @@ function renderAll() {
 }
 
 function bindEvents() {
+  // Navegación de pestañas garantizada
   $$('nav button').forEach(btn => {
     btn.onclick = () => {
       $$('nav button, .tab').forEach(el => el.classList.remove('on'));
       btn.classList.add('on');
-      $('#' + btn.dataset.t).classList.add('on');
+      const targetTab = $('#' + btn.dataset.t);
+      if (targetTab) targetTab.classList.add('on');
       window.scrollTo(0, 0);
     };
   });
@@ -482,7 +484,7 @@ function bindEvents() {
   });
 
   $('#bd').onclick = () => {
-    const blob = new Blob([JSON.stringify({ app: 'menu-nutricional', v: 4, state }, null, 2)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify({ app: 'menu-nutricional', v: 6, state }, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -514,11 +516,8 @@ function bindEvents() {
   };
 
   $('#rs').onclick = () => {
-    if (confirm('¿Restablecer y cargar todos los platos y desayunos nuevos por defecto?')) {
-      localStorage.removeItem('menu_nutricional_v4');
-      localStorage.removeItem('menu_nutricional_v3');
-      localStorage.removeItem('menu_nutricional_v2');
-      localStorage.removeItem('mp1');
+    if (confirm('¿Restablecer y cargar los 6 desayunos y todos los nuevos platos por defecto?')) {
+      localStorage.clear();
       location.reload();
     }
   };
