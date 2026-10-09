@@ -1,5 +1,5 @@
 import { state, loadState, saveState, getAllFoods, getAllDishes } from './state.js';
-import { BASE_MEALS } from './data/dishes.js';
+import { FIXED_SNACKS } from './data/dishes.js';
 import { calcNutrients, formatNutrientSummary } from './nutrition.js';
 
 const DAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
@@ -20,10 +20,12 @@ function init() {
 }
 
 function getDayItems(d) {
-  let it = [...BASE_MEALS.desayuno, ...BASE_MEALS.almuerzo, ...(d.e ? BASE_MEALS.meriendaEntreno : BASE_MEALS.meriendaDescanso)];
+  let it = [...FIXED_SNACKS.almuerzo, ...(d.e ? FIXED_SNACKS.meriendaEntreno : FIXED_SNACKS.meriendaDescanso)];
   const dishes = getAllDishes();
+  const bDish = dishes.find(x => x.n === d.b);
   const cDish = dishes.find(x => x.n === d.c);
   const nDish = dishes.find(x => x.n === d.n);
+  if (bDish) it = it.concat(bDish.i);
   if (cDish) it = it.concat(cDish.i);
   if (nDish) it = it.concat(nDish.i);
   return it;
@@ -69,12 +71,13 @@ function renderWeek() {
 
   $('#wk').innerHTML = state.plan.map((d, i) => {
     const tot = calcNutrients(getDayItems(d), foods);
+    const db = dishes.find(x => x.n === d.b);
     const dc = dishes.find(x => x.n === d.c);
     const dn = dishes.find(x => x.n === d.n);
 
     const dishOptions = (type, current) => 
-      '<option value="">— Elegir plato —</option>' +
-      '<option value="#fuera" ' + (current === '#fuera' ? 'selected' : '') + '>🍴 Comer fuera</option>' +
+      '<option value="">— Elegir ' + type + ' —</option>' +
+      '<option value="#fuera" ' + (current === '#fuera' ? 'selected' : '') + '>🍴 Fuera de casa</option>' +
       dishes.filter(x => x.t === type).map(x => '<option value="' + esc(x.n) + '" ' + (x.n === current ? 'selected' : '') + '>' + esc(x.n) + '</option>').join('');
 
     return '<div class="card">' +
@@ -84,6 +87,10 @@ function renderWeek() {
           '<input type="checkbox" data-e="' + i + '" ' + (d.e ? 'checked' : '') + ' style="width:auto;margin:0"> Entreno' +
         '</label>' +
       '</h3>' +
+      '<label for="desayuno-' + i + '">Desayuno</label>' +
+      '<select id="desayuno-' + i + '" data-b="' + i + '">' + dishOptions('desayuno', d.b) + '</select>' +
+      '<p class="mm">' + (db ? formatNutrientSummary(calcNutrients(db.i, foods)) : d.b === '#fuera' ? 'Fuera de casa' : 'Sin asignar') + '</p>' +
+
       '<label for="comida-' + i + '">Comida</label>' +
       '<select id="comida-' + i + '" data-c="' + i + '">' + dishOptions('comida', d.c) + '</select>' +
       '<p class="mm">' + (dc ? formatNutrientSummary(calcNutrients(dc.i, foods)) : d.c === '#fuera' ? 'Fuera de casa' : 'Sin asignar') + '</p>' +
@@ -117,84 +124,87 @@ function renderWeek() {
 function generateBalancedWeek() {
   const dishes = getAllDishes();
   const foods = getAllFoods();
+  const desayunos = dishes.filter(d => d.t === 'desayuno');
   const comidas = dishes.filter(d => d.t === 'comida');
   const cenas = dishes.filter(d => d.t === 'cena');
 
   if (!comidas.length || !cenas.length) {
-    return alert('Debes tener al menos una comida y una cena disponibles.');
+    return alert('Debes tener comidas y cenas disponibles.');
   }
 
   const T = state.t;
   const targetWeek = { k: T.k * 7, p: T.p * 7, g: T.g * 7, h: T.h * 7 };
-
-  // Precalcular macros de cada plato
   const mealMacros = (d) => calcNutrients(d.i, foods);
-  const baseDayMacros = (isTraining) => calcNutrients([...BASE_MEALS.desayuno, ...BASE_MEALS.almuerzo, ...(isTraining ? BASE_MEALS.meriendaEntreno : BASE_MEALS.meriendaDescanso)], foods);
+  const snackMacros = (isTraining) => calcNutrients([...FIXED_SNACKS.almuerzo, ...(isTraining ? FIXED_SNACKS.meriendaEntreno : FIXED_SNACKS.meriendaDescanso)], foods);
 
   let bestPlan = null;
   let bestScore = Infinity;
 
-  // Realizamos 250 simulaciones heurísticas y seleccionamos la que clava el verde en todos los macros
-  for (let sim = 0; sim < 250; sim++) {
+  for (let sim = 0; sim < 300; sim++) {
     const candidatePlan = [];
     const acc = { k: 0, p: 0, g: 0, h: 0 };
+    const usedB = [];
     const usedC = [];
     const usedN = [];
 
     for (let day = 0; day < 7; day++) {
       const isTraining = state.plan[day].e;
-      const base = baseDayMacros(isTraining);
+      const baseSnack = snackMacros(isTraining);
       
-      // Peso de compensación para días restantes
       const daysLeft = 7 - day;
-      const neededKcalDay = (targetWeek.k - acc.k) / daysLeft;
-      const neededProtDay = (targetWeek.p - acc.p) / daysLeft;
-      const neededFatDay = (targetWeek.g - acc.g) / daysLeft;
-      const neededCarbDay = (targetWeek.h - acc.h) / daysLeft;
+      const neededK = (targetWeek.k - acc.k) / daysLeft;
+      const neededP = (targetWeek.p - acc.p) / daysLeft;
+      const neededG = (targetWeek.g - acc.g) / daysLeft;
+      const neededH = (targetWeek.h - acc.h) / daysLeft;
 
-      let bestPair = null;
+      let bestTrio = null;
       let bestDayDiff = Infinity;
 
-      // Barajar candidatos para añadir aleatoriedad y variedad
-      const shuffledComidas = [...comidas].sort(() => 0.5 - Math.random()).slice(0, 8);
-      const shuffledCenas = [...cenas].sort(() => 0.5 - Math.random()).slice(0, 8);
+      const candB = desayunos.length ? [...desayunos].sort(() => 0.5 - Math.random()).slice(0, 3) : [{ n: '', i: [] }];
+      const candC = [...comidas].sort(() => 0.5 - Math.random()).slice(0, 6);
+      const candN = [...cenas].sort(() => 0.5 - Math.random()).slice(0, 6);
 
-      for (const c of shuffledComidas) {
-        const cM = mealMacros(c);
-        for (const n of shuffledCenas) {
-          const nM = mealMacros(n);
-          const dayK = base.k + cM.k + nM.k;
-          const dayP = base.p + cM.p + nM.p;
-          const dayG = base.g + cM.g + nM.g;
-          const dayH = base.h + cM.h + nM.h;
+      for (const b of candB) {
+        const bM = mealMacros(b);
+        for (const c of candC) {
+          const cM = mealMacros(c);
+          for (const n of candN) {
+            const nM = mealMacros(n);
 
-          // Penalización si el plato se repitió inmediatamente
-          const repPenalty = (usedC[usedC.length - 1] === c.n ? 1.5 : 1) * (usedN[usedN.length - 1] === n.n ? 1.5 : 1);
+            const dayK = baseSnack.k + bM.k + cM.k + nM.k;
+            const dayP = baseSnack.p + bM.p + cM.p + nM.p;
+            const dayG = baseSnack.g + bM.g + cM.g + nM.g;
+            const dayH = baseSnack.h + bM.h + cM.h + nM.h;
 
-          const diff = (
-            Math.abs(dayK - neededKcalDay) / T.k +
-            Math.abs(dayP - neededProtDay) / T.p +
-            Math.abs(dayG - neededFatDay) / T.g +
-            Math.abs(dayH - neededCarbDay) / T.h
-          ) * repPenalty;
+            const repPenalty = (usedC[usedC.length - 1] === c.n ? 1.4 : 1) * 
+                               (usedN[usedN.length - 1] === n.n ? 1.4 : 1) * 
+                               (usedB[usedB.length - 1] === b.n ? 1.2 : 1);
 
-          if (diff < bestDayDiff) {
-            bestDayDiff = diff;
-            bestPair = { c: c.n, n: n.n, dayNuts: { k: dayK, p: dayP, g: dayG, h: dayH } };
+            const diff = (
+              Math.abs(dayK - neededK) / T.k +
+              Math.abs(dayP - neededP) / T.p +
+              Math.abs(dayG - neededG) / T.g +
+              Math.abs(dayH - neededH) / T.h
+            ) * repPenalty;
+
+            if (diff < bestDayDiff) {
+              bestDayDiff = diff;
+              bestTrio = { b: b.n, c: c.n, n: n.n, dayNuts: { k: dayK, p: dayP, g: dayG, h: dayH } };
+            }
           }
         }
       }
 
-      candidatePlan.push({ c: bestPair.c, n: bestPair.n, e: isTraining });
-      usedC.push(bestPair.c);
-      usedN.push(bestPair.n);
-      acc.k += bestPair.dayNuts.k;
-      acc.p += bestPair.dayNuts.p;
-      acc.g += bestPair.dayNuts.g;
-      acc.h += bestPair.dayNuts.h;
+      candidatePlan.push({ b: bestTrio.b, c: bestTrio.c, n: bestTrio.n, e: isTraining });
+      usedB.push(bestTrio.b);
+      usedC.push(bestTrio.c);
+      usedN.push(bestTrio.n);
+      acc.k += bestTrio.dayNuts.k;
+      acc.p += bestTrio.dayNuts.p;
+      acc.g += bestTrio.dayNuts.g;
+      acc.h += bestTrio.dayNuts.h;
     }
 
-    // Puntaje de ajuste global de la semana
     const totalScore = (
       Math.abs(acc.k - targetWeek.k) / targetWeek.k +
       Math.abs(acc.p - targetWeek.p) / targetWeek.p +
@@ -237,7 +247,7 @@ function renderShop() {
       const unitInfo = f.u ? ' · ≈ ' + (totals[name] / f.u).toFixed(1) + ' ' + esc(f.un || 'ud') : '';
       const isChecked = !!state.chk[name];
       return '<label class="it ' + (isChecked ? 'd' : '') + '">' +
-        '<input type="checkbox" data-k="' + esc(name)}" ' + (isChecked ? 'checked' : '') + '>' +
+        '<input type="checkbox" data-k="' + esc(name) + '" ' + (isChecked ? 'checked' : '') + '>' +
         '<span>' + esc(name) + '</span>' +
         '<em>' + formatQty(totals[name]) + unitInfo + '</em>' +
       '</label>';
@@ -249,15 +259,15 @@ function renderDishes() {
   const dishes = getAllDishes();
   const foods = getAllFoods();
 
-  $('#dl').innerHTML = ['comida', 'cena'].map(type => 
+  $('#dl').innerHTML = ['desayuno', 'comida', 'cena'].map(type => 
     '<h4 style="margin:12px 0 6px;text-transform:capitalize;color:var(--ac)">' + type + 's</h4>' +
     dishes.filter(d => d.t === type).map(d => 
       '<div class="card">' +
         '<h3>' +
           esc(d.n) +
           '<span style="display:flex;gap:4px">' +
-            '<button class="btn s" data-ed="' + esc(d.n) + '" aria-label="Editar" style="padding:4px 8px">✏️</button>' +
-            '<button class="btn r" data-del="' + esc(d.n) + '" aria-label="Eliminar" style="padding:4px 8px">✕</button>' +
+            '<button class="btn s" data-ed="' + esc(d.n)}" aria-label="Editar" style="padding:4px 8px">✏️</button>' +
+            '<button class="btn r" data-del="' + esc(d.n)}" aria-label="Eliminar" style="padding:4px 8px">✕</button>' +
           '</span>' +
         '</h3>' +
         '<p class="mm">' + formatNutrientSummary(calcNutrients(d.i, foods)) + '</p>' +
@@ -324,6 +334,7 @@ function bindEvents() {
     const t = e.target;
     const d = t.dataset;
     if (d.e !== undefined) state.plan[d.e].e = t.checked;
+    if (d.b !== undefined) state.plan[d.b].b = t.value;
     if (d.c !== undefined) state.plan[d.c].c = t.value;
     if (d.n !== undefined) state.plan[d.n].n = t.value;
     saveState();
@@ -385,6 +396,7 @@ function bindEvents() {
     if (editingDish && editingDish !== name) {
       state.dishes = state.dishes.filter(d => d.n !== editingDish);
       state.plan.forEach(d => {
+        if (d.b === editingDish) d.b = name;
         if (d.c === editingDish) d.c = name;
         if (d.n === editingDish) d.n = name;
       });
@@ -410,6 +422,7 @@ function bindEvents() {
       state.dishes = state.dishes.filter(d => d.n !== name);
       if (!state.del.includes(name)) state.del.push(name);
       state.plan.forEach(d => {
+        if (d.b === name) d.b = '';
         if (d.c === name) d.c = '';
         if (d.n === name) d.n = '';
       });
@@ -469,7 +482,7 @@ function bindEvents() {
   });
 
   $('#bd').onclick = () => {
-    const blob = new Blob([JSON.stringify({ app: 'menu-nutricional', v: 2, state }, null, 2)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify({ app: 'menu-nutricional', v: 3, state }, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;

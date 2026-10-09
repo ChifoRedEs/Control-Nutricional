@@ -1,7 +1,10 @@
 export const DEFAULT_FOODS = {
   "Bebida de avena": { cat: "Bebidas", k: 45, p: 1, g: 1.5, gSat: 0.2, h: 7.5, az: 4.5, fib: 0.8, u: 0, un: "" },
   "Vino blanco": { cat: "Bebidas", k: 82, p: 0.1, g: 0, gSat: 0, h: 2.6, az: 0.6, fib: 0, u: 0, un: "" },
+  "Café (solo o infusión)": { cat: "Bebidas", k: 2, p: 0.2, g: 0, gSat: 0, h: 0.3, az: 0, fib: 0, u: 0, un: "" },
+  "Zumo de naranja natural": { cat: "Bebidas", k: 42, p: 0.7, g: 0.2, gSat: 0, h: 9.8, az: 8.5, fib: 0.4, u: 0, un: "" },
   "Matcha": { cat: "Otros", k: 324, p: 30, g: 5, gSat: 0.7, h: 39, az: 1.2, fib: 38.5, u: 0, un: "" },
+  "Copos de avena": { cat: "Cereales, pan y pasta", k: 370, p: 13.5, g: 7, gSat: 1.2, h: 58, az: 1, fib: 10, u: 0, un: "" },
   "Pan": { cat: "Cereales, pan y pasta", k: 265, p: 8.5, g: 3, gSat: 0.5, h: 50, az: 2.5, fib: 3.5, u: 0, un: "" },
   "Tortita de arroz y legumbres": { cat: "Cereales, pan y pasta", k: 380, p: 10, g: 3, gSat: 0.6, h: 78, az: 1, fib: 4.5, u: 0, un: "" },
   "Arroz (seco)": { cat: "Cereales, pan y pasta", k: 350, p: 7, g: 0.6, gSat: 0.1, h: 78, az: 0.2, fib: 1.4, u: 0, un: "" },
