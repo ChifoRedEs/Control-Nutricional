@@ -12,8 +12,8 @@
 </head>
 <body>
   <header>
-    <h1>🥗 Control Nutricional</h1>
-    <nav role="tablist">
+    <h1>Control Nutricional & Menú Semanal</h1>
+    <nav class="tabs" role="tablist">
       <button data-t="a" class="tab-btn on" role="tab" aria-selected="true">Semana</button>
       <button data-t="b" class="tab-btn" role="tab" aria-selected="false">Compra</button>
       <button data-t="c" class="tab-btn" role="tab" aria-selected="false">Platos</button>
@@ -22,124 +22,104 @@
   </header>
 
   <main>
-    <section id="a" class="tab on" role="tabpanel">
-      <div class="row mb-2">
-        <button class="btn s" id="rnd">🎲 Semana equilibrada (Auto-Ajuste)</button>
+    <!-- TAB 1: SEMANA -->
+    <section id="ta" class="panel on" role="tabpanel">
+      <div class="actions">
+        <button class="btn s" id="btn-adjust">⚖️ Ajustar Raciones a Objetivos</button>
         <button class="btn s" id="open-menu-modal">📋 Ver Menú Semanal Completo</button>
         <button class="btn r x" id="clr">Vaciar</button>
       </div>
-      <div id="wk"></div>
-      <div class="card" id="sum"></div>
+
+      <div class="grid" id="wk"></div>
+      <div class="card" id="wk-sum" style="margin-top:16px;"></div>
     </section>
 
-    <section id="b" class="tab" role="tabpanel">
-      <div class="row mb-2">
+    <!-- TAB 2: COMPRA -->
+    <section id="tb" class="panel" role="tabpanel">
+      <div class="actions">
         <button class="btn s" id="cp">Copiar lista</button>
         <button class="btn r" id="un">Desmarcar todo</button>
       </div>
       <div id="shop"></div>
     </section>
 
-    <section id="c" class="tab" role="tabpanel">
-      <div id="dl"></div>
-
-      <div class="card" id="dish-form-card">
-        <h3 id="ft">➕ Nuevo plato</h3>
+    <!-- TAB 3: PLATOS -->
+    <section id="tc" class="panel" role="tabpanel">
+      <div class="card mb-3">
+        <h3 id="form-dish-title">Nuevo / Editar plato</h3>
         <label for="dn">Nombre del plato</label>
-        <input id="dn" placeholder="Ej. Fajitas de ternera con verduras">
+        <input type="text" id="dn" placeholder="Ej. Bowl proteico de frutas">
 
         <label for="dt">Tipo de plato</label>
         <select id="dt">
           <option value="desayuno">Desayuno</option>
+          <option value="almuerzo">Almuerzo (Media Mañana)</option>
           <option value="comida">Comida</option>
+          <option value="merienda">Merienda (Tarde)</option>
           <option value="cena">Cena</option>
         </select>
 
-        <label>Ingredientes (gramos en crudo)</label>
-        <div id="dr"></div>
+        <h4>Ingredientes</h4>
+        <div id="ing-list"></div>
         <button class="btn s my-1" id="ar">+ Añadir ingrediente</button>
 
-        <div class="preview-box" id="dp"></div>
-
-        <div class="row mt-2">
+        <div class="actions mt-2">
           <button class="btn" id="ds">Guardar plato</button>
           <button class="btn s" id="xc" style="display:none">Cancelar</button>
         </div>
       </div>
-
-      <div class="card">
-        <h3>🥕 Alimento (por cada 100g)</h3>
-        <p class="mm">Si el alimento ya existe, sus datos nutricionales se actualizarán.</p>
-        <label for="fn">Nombre</label>
-        <input id="fn" placeholder="Ej. Copos de avena">
-
-        <label for="fc">Categoría</label>
-        <input id="fc" list="cats" placeholder="Cereales, Carnes, Bebidas…">
-        <datalist id="cats"></datalist>
-
-        <div class="grid-4">
-          <div><label for="fk">kcal</label><input id="fk" type="number" step="0.1"></div>
-          <div><label for="fp">Proteínas (g)</label><input id="fp" type="number" step="0.1"></div>
-          <div><label for="fg">Grasas tot. (g)</label><input id="fg" type="number" step="0.1"></div>
-          <div><label for="fh">Hidratos tot. (g)</label><input id="fh" type="number" step="0.1"></div>
-        </div>
-
-        <div class="grid-3 mt-1">
-          <div><label for="fsat">Grasa sat. (g)</label><input id="fsat" type="number" step="0.1"></div>
-          <div><label for="faz">Azúcares (g)</label><input id="faz" type="number" step="0.1"></div>
-          <div><label for="ffib">Fibra (g)</label><input id="ffib" type="number" step="0.1"></div>
-        </div>
-
-        <div class="row mt-1">
-          <div><label for="fu">Peso por unidad (g, opcional)</label><input id="fu" type="number" step="0.1"></div>
-          <div><label for="fx">Nombre unidad</label><input id="fx" placeholder="ud, pieza, lata"></div>
-        </div>
-
-        <button class="btn mt-2" id="fs">Guardar alimento</button>
-      </div>
+      <div id="dish-list"></div>
     </section>
 
-    <section id="d" class="tab" role="tabpanel">
-      <div class="card">
-        <h3>🎯 Objetivos diarios</h3>
-        <div class="grid-4">
-          <div><label for="tk">kcal</label><input id="tk" type="number"></div>
-          <div><label for="tp">Proteína (g)</label><input id="tp" type="number"></div>
-          <div><label for="tg">Grasa (g)</label><input id="tg" type="number"></div>
-          <div><label for="th">Hidratos (g)</label><input id="th" type="number"></div>
+    <!-- TAB 4: AJUSTES -->
+    <section id="td" class="panel" role="tabpanel">
+      <div class="card mb-3">
+        <h3>Objetivos Nutricionales Diarios</h3>
+        <div class="grid-2">
+          <div><label for="tk">Calorías (kcal)</label><input type="number" id="tk" min="1000" max="5000"></div>
+          <div><label for="tp">Proteína (g)</label><input type="number" id="tp" min="20" max="400"></div>
+          <div><label for="tg">Grasas (g)</label><input type="number" id="tg" min="10" max="200"></div>
+          <div><label for="th">Carbohidratos (g)</label><input type="number" id="th" min="20" max="600"></div>
+          <div><label for="tgs">Grasa saturada máx (g)</label><input type="number" id="tgs" min="5" max="100"></div>
+          <div><label for="taz">Azúcar máx (g)</label><input type="number" id="taz" min="5" max="150"></div>
+          <div><label for="tfb">Fibra mín (g)</label><input type="number" id="tfb" min="5" max="100"></div>
+          <div><label for="tm">Margen tolerancia (±%)</label><input type="number" id="tm" min="1" max="25"></div>
         </div>
-        <div class="grid-3 mt-1">
-          <div><label for="tsat">Grasa sat. máx (g)</label><input id="tsat" type="number"></div>
-          <div><label for="taz">Azúcar máx (g)</label><input id="taz" type="number"></div>
-          <div><label for="tfib">Fibra mín (g)</label><input id="tfib" type="number"></div>
+      </div>
+
+      <div class="card mb-3">
+        <h3>Base de Alimentos</h3>
+        <div class="grid-2">
+          <div><label for="fn">Nombre</label><input type="text" id="fn"></div>
+          <div><label for="fc">Categoría</label><input type="text" id="fc"></div>
+          <div><label for="fk">Kcal / 100g</label><input type="number" id="fk"></div>
+          <div><label for="fp">Proteína (g)</label><input type="number" id="fp"></div>
+          <div><label for="fg">Grasa (g)</label><input type="number" id="fg"></div>
+          <div><label for="fgs">Grasa sat. (g)</label><input type="number" id="fgs"></div>
+          <div><label for="fh">Hidratos (g)</label><input type="number" id="fh"></div>
+          <div><label for="faz">Azúcar (g)</label><input type="number" id="faz"></div>
+          <div><label for="ffb">Fibra (g)</label><input type="number" id="ffb"></div>
+          <div><label for="fu">Peso ud. (g, opc.)</label><input type="number" id="fu"></div>
+          <div><label for="fun">Nombre ud. (opc.)</label><input type="text" id="fun"></div>
         </div>
-        <label for="tm" class="mt-1">Margen de tolerancia (%)</label>
-        <input id="tm" type="number">
-        <p class="mm">Verde: en rango · Ámbar: margen tolerable · Rojo: fuera de rango.</p>
+        <button class="btn mt-2" id="fs">Guardar alimento</button>
       </div>
 
       <div class="card">
-        <h3>💾 Copia de seguridad</h3>
-        <p class="mm">Descarga o importa tus platos, alimentos y menús en formato JSON.</p>
-        <div class="row">
+        <h3>Copia de Seguridad</h3>
+        <div class="actions">
           <button class="btn" id="bd">⬇️ Descargar copia</button>
           <button class="btn s" id="bi">⬆️ Importar copia</button>
+          <input type="file" id="fi" accept=".json" style="display:none">
         </div>
-        <input type="file" id="bf" accept=".json,application/json" style="display:none">
-        <p class="mm" id="bm" style="margin-top:8px"></p>
-      </div>
-
-      <div class="card border-danger">
-        <h3 class="color-danger">Zona de peligro</h3>
-        <button class="btn r w-100" id="rs">Restablecer datos por defecto</button>
+        <button class="btn r w-100" id="rs" style="margin-top:12px;">Restablecer datos por defecto</button>
       </div>
     </section>
   </main>
 
-  <!-- MODAL: MENÚ SEMANAL COMPLETO -->
   <dialog id="menu-modal" class="modal">
     <div class="modal-header">
-      <h2>📋 Menú Semanal Completo</h2>
+      <h2>Menú Semanal Completo</h2>
       <button class="btn r x" id="close-menu-modal">✕</button>
     </div>
     <div class="modal-body" id="menu-modal-content"></div>
@@ -149,7 +129,6 @@
     </div>
   </dialog>
 
-  <datalist id="foods-dl"></datalist>
-  <script type="module" src="js/app.js"></script>
+  <script type="module" src="js/app.js"><\/script>
 </body>
 </html>
