@@ -26,8 +26,11 @@
   <main>
     <!-- ═════════ PESTAÑA 1: SEMANA ═════════ -->
     <section id="ta" class="tab on" role="tabpanel">
-      <div class="actions">
+      <div class="actions pair">
         <button type="button" class="btn" id="btn-adjust">⚖️ Ajustar Raciones a Objetivos</button>
+        <button type="button" class="btn" id="btn-auto">🎲 Elegir platos del día</button>
+      </div>
+      <div class="actions">
         <button type="button" class="btn s" id="open-menu-modal">📋 Ver Menú Completo</button>
         <button type="button" class="btn r" id="clr">Vaciar</button>
       </div>
@@ -83,15 +86,19 @@
     <section id="td" class="tab" role="tabpanel">
       <div class="card">
         <h3>Objetivos nutricionales diarios</h3>
-        <label for="tmode">Cálculo de objetivos</label>
+        <p class="mm">Escribe las calorías, elige la fórmula y pulsa «Calcular nutrientes». También puedes editar cualquier valor a mano.</p>
+        <label for="tmode">Fórmula</label>
         <select id="tmode">
-          <option value="perdida">Automático · Pérdida de peso</option>
-          <option value="mantenimiento">Automático · Mantenimiento</option>
-          <option value="manual">Manual (editar cada valor)</option>
+          <option value="perdida">Pérdida de peso</option>
+          <option value="mantenimiento">Mantenimiento</option>
+          <option value="volumen">Aumento de masa muscular</option>
         </select>
+        <div class="calc-row">
+          <div><label for="tk">Calorías (kcal)</label><input type="number" id="tk" min="800" max="6000"></div>
+          <button type="button" class="btn" id="calc-targets">🔄 Calcular nutrientes</button>
+        </div>
         <p class="mm" id="mode-info"></p>
         <div class="grid-2">
-          <div><label for="tk">Calorías (kcal)</label><input type="number" id="tk" min="1000" max="5000"></div>
           <div><label for="tp">Proteína (g)</label><input type="number" id="tp" min="20" max="400"></div>
           <div><label for="tg">Grasas (g)</label><input type="number" id="tg" min="10" max="200"></div>
           <div><label for="th">Carbohidratos (g)</label><input type="number" id="th" min="20" max="600"></div>
