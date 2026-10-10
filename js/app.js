@@ -11,12 +11,15 @@ import {
   getAllFoods, getAllDishes, isDefaultDish, DEFAULT_TARGETS
 } from './state.js';
 import { calcNutrients, formatNutrientSummary, emptyNutrients } from './nutrition.js';
-import { computeWeek, tolerance, MEALS, OUT } from './engine.js';
+import { computeWeek, tolerance, MEALS, OUT, POST_WORKOUT, ALL_KEYS } from './engine.js';
 import { MEAL_TYPES } from './data/dishes.js';
+import { shopGroupOf } from './data/shopGroups.js';
+import { TARGET_MODES, targetsFromKcal } from './targets.js';
 
 /* ───────────────────────── Utilidades ───────────────────────── */
 
 const DAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+const DAYS_SHORT = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 const TYPE_LABEL = {
   desayuno: '🥞 Desayuno',
   almuerzo: '🥪 Almuerzo (Media Mañana)',
@@ -41,6 +44,9 @@ const dayInTarget = d => MAIN.every(k => tolerance(d.nut[k], d.target[k], state.
 
 /** Resultado del motor para la semana actual (se recalcula en cada renderAll). */
 let week = [];
+/** Sub-pestañas activas: día en Semana (por defecto hoy) y categoría en Platos. */
+let selDay = (new Date().getDay() + 6) % 7;
+let selType = 'desayuno';
 
 /* ───────────────────────── Indicadores ───────────────────────── */
 
@@ -89,7 +95,16 @@ function renderWeek() {
   const foods = getAllFoods();
   const names = new Set(dishes.map(d => d.n));
 
+  // Sub-pestañas de días con indicador de estado (gris: vacío · verde: en objetivo · naranja: revisar)
+  $('#day-tabs').innerHTML = state.plan.map((day, i) => {
+    const res = week[i];
+    const st = res.target.share > 0 ? (dayInTarget(res) ? 'ok' : 'wa') : '';
+    return `<button type="button" class="sub-tab${i === selDay ? ' on' : ''}" data-day-tab="${i}" role="tab"
+      aria-selected="${i === selDay}" title="${DAYS[i]}">${DAYS_SHORT[i]}${day.e ? '<small class="train" aria-label="Entreno">⚡</small>' : ''}<i class="dot ${st}"></i></button>`;
+  }).join('');
+
   $('#wk').innerHTML = state.plan.map((day, i) => {
+    if (i !== selDay) return '';
     const res = week[i];
 
     const mealRow = ({ key, type, label }) => {
@@ -114,6 +129,12 @@ function renderWeek() {
       </div>`;
     };
 
+    // Batido post-entreno (solo días con el check "Entreno")
+    const post = day.e ? `<div class="meal post">
+        <label>${POST_WORKOUT.label}</label>
+        <p class="post-line">${POST_WORKOUT.items.map(([n, g]) => `${esc(n)} ${g} g`).join(', ')} · ${formatNutrientSummary(calcNutrients(POST_WORKOUT.items, foods))}</p>
+      </div>` : '';
+
     const hasDishes = res.target.share > 0;
     const shareNote = hasDishes && res.target.share < 0.999
       ? `<p class="mm">Objetivo del día al ${r(res.target.share * 100)} % (solo cuentan las tomas en casa).</p>` : '';
@@ -124,6 +145,7 @@ function renderWeek() {
         <label class="inline"><input type="checkbox" data-train="${i}"${day.e ? ' checked' : ''}> Entreno</label>
       </h3>
       ${MEALS.map(mealRow).join('')}
+      ${post}
       ${hasDishes
         ? shareNote + renderIndicators(res.nut, res.target) + dayHint(res)
         : '<p class="mm">Elige los platos del día para ver sus indicadores.</p>'}
@@ -174,7 +196,10 @@ function renderMenuModal() {
         </details>`;
       }
       return `<div class="meal-block"><div class="meal-title">${label}</div>${body}</div>`;
-    }).join('');
+    }).join('') + (day.e ? `<div class="meal-block"><div class="meal-title">${POST_WORKOUT.label}</div>
+        <p class="dish-sub">${esc(POST_WORKOUT.name)}</p>
+        <ul class="dish-ingredients">${POST_WORKOUT.items.map(([n, g]) => `<li>${esc(n)}: <b>${g} g</b></li>`).join('')}</ul>
+      </div>` : '');
 
     return `<section class="day-menu-card">
       <h3>${DAYS[i]} · ${day.e ? '⚡ Entreno' : '🛋️ Descanso'}</h3>
@@ -186,42 +211,66 @@ function renderMenuModal() {
 
 /* ───────────────────────── Pestaña Compra ───────────────────────── */
 
-/** Suma los gramos de cada ingrediente de toda la semana (con las raciones ajustadas). */
-function shoppingTotals() {
-  const totals = {};
-  week.forEach(d => MEALS.forEach(({ key }) => d.meals[key].forEach(([name, g]) => {
-    totals[name] = (totals[name] || 0) + (Number(g) || 0);
+/**
+ * Lista de la compra agrupada por tipo de alimento.
+ * Suma los gramos de toda la semana (raciones ya ajustadas) y los agrupa
+ * según shopGroups.js: p. ej. todas las piezas de pollo en una línea.
+ * @returns {Array<{group, cat, total, parts: Array<{name, g}>}>}
+ */
+function shoppingGroups() {
+  const foods = getAllFoods();
+  const perFood = {};
+  week.forEach(d => ALL_KEYS.forEach(key => (d.meals[key] || []).forEach(([name, g]) => {
+    perFood[name] = (perFood[name] || 0) + (Number(g) || 0);
   })));
-  return totals;
+
+  const groups = {};
+  Object.entries(perFood).forEach(([name, g]) => {
+    const grp = shopGroupOf(name, foods[name]);
+    const entry = groups[grp] || (groups[grp] = { group: grp, cat: foods[name]?.cat || 'Otros', total: 0, parts: [] });
+    entry.total += g;
+    entry.parts.push({ name, g });
+  });
+  return Object.values(groups).map(e => {
+    e.parts.sort((a, b) => b.g - a.g);
+    e.cat = foods[e.parts[0].name]?.cat || 'Otros'; // categoría del alimento principal del grupo
+    return e;
+  });
+}
+
+/** Texto de unidades aproximadas ("≈ 3 latas") para un alimento que se compra por unidades. */
+function unitsText(name, grams, foods) {
+  const f = foods[name] || {};
+  return f.u ? ` ≈ ${(grams / f.u).toFixed(1).replace('.0', '')} ${f.un || 'ud.'}` : '';
 }
 
 function renderShop() {
   const foods = getAllFoods();
-  const totals = shoppingTotals();
-  const byCat = {};
-  Object.keys(totals).forEach(name => {
-    const cat = foods[name]?.cat || 'Otros';
-    (byCat[cat] = byCat[cat] || []).push(name);
-  });
-
-  const cats = Object.keys(byCat).sort((a, b) => a.localeCompare(b, 'es'));
-  if (!cats.length) {
+  const groups = shoppingGroups();
+  if (!groups.length) {
     $('#shop').innerHTML = '<p class="mm">La lista se genera sola cuando eliges platos en la pestaña Semana.</p>';
     return;
   }
 
+  const byCat = {};
+  groups.forEach(g => (byCat[g.cat] = byCat[g.cat] || []).push(g));
+  const cats = Object.keys(byCat).sort((a, b) => a.localeCompare(b, 'es'));
+
   let idx = 0;
   $('#shop').innerHTML = cats.map(cat => `<div class="card">
     <h3>${esc(cat)}</h3>
-    ${byCat[cat].sort((a, b) => a.localeCompare(b, 'es')).map(name => {
-      const f = foods[name] || {};
-      const units = f.u ? ` <em>≈ ${(totals[name] / f.u).toFixed(1)} ${esc(f.un || 'ud.')}</em>` : '';
-      const done = !!state.chk[name];
+    ${byCat[cat].sort((a, b) => a.group.localeCompare(b.group, 'es')).map(g => {
+      const done = !!state.chk[g.group];
       const id = 'shop-' + (idx++);
+      const single = g.parts.length === 1 && g.parts[0].name === g.group;
+      // Desglose (solo si el grupo junta varios alimentos o tiene nombre distinto)
+      const detail = single
+        ? (unitsText(g.group, g.total, foods) ? `<em>${esc(unitsText(g.group, g.total, foods).trim())}</em>` : '')
+        : `<em>${g.parts.map(p => esc(p.name) + ' ' + formatQty(p.g) + esc(unitsText(p.name, p.g, foods))).join(' · ')}</em>`;
       return `<label class="it${done ? ' d' : ''}" for="${id}">
-        <input type="checkbox" id="${id}" data-item="${esc(name)}"${done ? ' checked' : ''}>
-        <span>${esc(name)}${units}</span>
-        <b>${formatQty(totals[name])}</b>
+        <input type="checkbox" id="${id}" data-item="${esc(g.group)}"${done ? ' checked' : ''}>
+        <span><span class="it-name">${esc(g.group)}</span>${detail}</span>
+        <b>${formatQty(g.total)}</b>
       </label>`;
     }).join('')}
   </div>`).join('');
@@ -236,9 +285,18 @@ function renderDishes() {
   const dishes = getAllDishes();
   const foods = getAllFoods();
 
-  $('#dish-list').innerHTML = MEAL_TYPES.map(type => {
+  // Sub-pestañas por tipo de comida
+  $('#dish-tabs').innerHTML = MEAL_TYPES.map(type => {
+    const n = dishes.filter(d => d.t === type).length;
+    const [icon, ...rest] = TYPE_LABEL[type].split(' ');
+    const name = rest.join(' ').replace(/ \(.*\)/, '');
+    return `<button type="button" class="sub-tab${type === selType ? ' on' : ''}" data-type-tab="${type}" role="tab"
+      aria-selected="${type === selType}" title="${TYPE_LABEL[type]}"><span class="ico">${icon}</span>${name}<small>${n}</small></button>`;
+  }).join('');
+
+  $('#dish-list').innerHTML = [selType].map(type => {
     const list = dishes.filter(d => d.t === type);
-    if (!list.length) return '';
+    if (!list.length) return '<p class="mm">No hay platos de este tipo. Créalo con el formulario.</p>';
     return `<h3 class="group-title">${TYPE_LABEL[type]} <small>(${list.length})</small></h3>` +
       list.map(dish => `<div class="card dish">
         <div class="dish-head">
@@ -270,9 +328,10 @@ function resetDishForm() {
   editingName = null;
   ingRows = [];
   $('#dn').value = '';
-  $('#dt').value = 'desayuno';
+  $('#dt').value = selType;
   $('#xc').style.display = 'none';
-  $('#form-dish-title').textContent = 'Nuevo plato';
+  $('#form-dish-title').textContent = '➕ Nuevo plato';
+  $('#dish-form').open = false;
   renderIngRows();
 }
 
@@ -306,6 +365,7 @@ function saveDish() {
   const pos = state.dishes.findIndex(d => d.n === n);
   if (pos >= 0) state.dishes[pos] = dish; else state.dishes.push(dish);
 
+  selType = t; // mostrar la categoría donde ha quedado el plato
   saveState();
   resetDishForm();
   renderAll();
@@ -320,7 +380,8 @@ function editDish(name) {
   ingRows = d.i.map(([n, w]) => ({ n, w }));
   renderIngRows();
   $('#xc').style.display = '';
-  $('#form-dish-title').textContent = 'Editando: ' + d.n;
+  $('#form-dish-title').textContent = '✏️ Editando: ' + d.n;
+  $('#dish-form').open = true;
   $('#dish-form').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
@@ -339,8 +400,25 @@ function deleteDish(name) {
 const TARGET_FIELDS = { tk: 'k', tp: 'p', tg: 'g', th: 'h', tgs: 'gSat', taz: 'az', tfb: 'fib', tm: 'm' };
 const FOOD_FIELDS = { fk: 'k', fp: 'p', fg: 'g', fgs: 'gSat', fh: 'h', faz: 'az', ffb: 'fib', fu: 'u' };
 
+/** Campos que se calculan solos a partir de las kcal cuando el modo no es manual. */
+const AUTO_FIELDS = ['tp', 'tg', 'th', 'tgs', 'taz', 'tfb'];
+
+/** Si el modo es automático, recalcula P/G/H y secundarios a partir de las kcal. */
+function applyTargetMode() {
+  const auto = targetsFromKcal(state.t.k, state.t.mode);
+  if (auto) Object.assign(state.t, auto);
+}
+
 function renderSettings() {
   Object.entries(TARGET_FIELDS).forEach(([id, k]) => { $('#' + id).value = state.t[k]; });
+  $('#tmode').value = state.t.mode || 'manual';
+  const split = TARGET_MODES[state.t.mode];
+  const auto = !!(split && split.p);
+  AUTO_FIELDS.forEach(id => { $('#' + id).readOnly = auto; });
+  $('#mode-info').textContent = auto
+    ? `Reparto: proteína ${split.p * 100} % · grasa ${split.g * 100} % · hidratos ${split.h * 100} %. ` +
+      'Grasa saturada y azúcar < 10 % de las kcal; fibra 14 g por cada 1000 kcal. Solo tienes que indicar las kcal.'
+    : 'Modo manual: edita cada objetivo por separado.';
   $('#aj').checked = !!state.adjust;
   $('#food-names').innerHTML = Object.keys(getAllFoods()).sort((a, b) => a.localeCompare(b, 'es'))
     .map(f => `<option value="${esc(f)}"></option>`).join('');
@@ -353,12 +431,15 @@ function prefillFood() {
   $('#fc').value = f.cat || '';
   Object.entries(FOOD_FIELDS).forEach(([id, k]) => { $('#' + id).value = f[k] || 0; });
   $('#fun').value = f.un || '';
+  $('#fgr').value = f.grp || '';
 }
 
 function saveFood() {
   const n = $('#fn').value.trim();
   if (!n) return alert('El nombre del alimento es obligatorio.');
   const food = { cat: $('#fc').value.trim() || 'Otros', un: $('#fun').value.trim() };
+  const grp = $('#fgr').value.trim();
+  if (grp) food.grp = grp;
   Object.entries(FOOD_FIELDS).forEach(([id, k]) => { food[k] = Math.max(0, +$('#' + id).value || 0); });
   if (!food.k) return alert('Indica las kcal por 100 g.');
   state.foods[n] = food;
@@ -366,7 +447,7 @@ function saveFood() {
   saveState();
   renderAll();
   renderIngRows();
-  ['fn', 'fc', 'fun', ...Object.keys(FOOD_FIELDS)].forEach(id => { $('#' + id).value = ''; });
+  ['fn', 'fc', 'fun', 'fgr', ...Object.keys(FOOD_FIELDS)].forEach(id => { $('#' + id).value = ''; });
   alert(`Alimento «${n}» guardado.`);
 }
 
@@ -423,6 +504,21 @@ function setupEvents() {
     renderAll();
   });
 
+  $('#day-tabs').addEventListener('click', e => {
+    const b = e.target.closest('[data-day-tab]');
+    if (!b) return;
+    selDay = +b.dataset.dayTab;
+    renderWeek();
+  });
+
+  $('#dish-tabs').addEventListener('click', e => {
+    const b = e.target.closest('[data-type-tab]');
+    if (!b) return;
+    selType = b.dataset.typeTab;
+    if (!editingName) $('#dt').value = selType;
+    renderDishes();
+  });
+
   $('#btn-adjust').addEventListener('click', adjustAndReport);
 
   $('#clr').addEventListener('click', () => {
@@ -452,10 +548,11 @@ function setupEvents() {
   $('#un').addEventListener('click', () => { state.chk = {}; saveState(); renderShop(); });
 
   $('#cp').addEventListener('click', () => {
-    const totals = shoppingTotals();
-    const lines = Object.keys(totals).sort((a, b) => a.localeCompare(b, 'es'))
-      .filter(n => !state.chk[n])
-      .map(n => `- ${n}: ${formatQty(totals[n])}`);
+    const lines = shoppingGroups()
+      .sort((a, b) => a.group.localeCompare(b.group, 'es'))
+      .filter(g => !state.chk[g.group])
+      .map(g => `- ${g.group}: ${formatQty(g.total)}` +
+        (g.parts.length > 1 ? ` (${g.parts.map(p => p.name + ' ' + formatQty(p.g)).join(', ')})` : ''));
     if (!lines.length) return alert('No queda nada pendiente en la lista.');
     const text = 'Lista de la compra\n' + lines.join('\n');
     if (navigator.clipboard?.writeText) {
@@ -490,9 +587,16 @@ function setupEvents() {
     $('#' + id).addEventListener('change', e => {
       const v = +e.target.value;
       state.t[k] = v > 0 ? v : DEFAULT_TARGETS[k];
+      if (k === 'k') applyTargetMode(); // al cambiar las kcal se reparten los macros
       saveState();
       renderAll();
     });
+  });
+  $('#tmode').addEventListener('change', e => {
+    state.t.mode = e.target.value;
+    applyTargetMode();
+    saveState();
+    renderAll();
   });
   $('#aj').addEventListener('change', e => { state.adjust = e.target.checked; saveState(); renderAll(); });
 

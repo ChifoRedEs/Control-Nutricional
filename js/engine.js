@@ -18,7 +18,10 @@
  *  4. Si tras resolver algún macro queda fuera de tolerancia, se aumenta su peso
  *     y se vuelve a resolver (hasta 6 rondas). Si aun así no entra, se repite con
  *     límites algo más amplios (fase 2). Al final se redondea a gramos enteros.
- *  5. Comidas "Fuera de casa" o sin asignar: el objetivo del día se reduce en la
+ *  5. Días de entreno: se añade un batido post-entreno FIJO (35 g de whey
+ *     isolate, sin grasa ni azúcar). Sus nutrientes cuentan en el día y las
+ *     5 comidas se reajustan alrededor de él.
+ *  6. Comidas "Fuera de casa" o sin asignar: el objetivo del día se reduce en la
  *     parte proporcional de esa toma (MEAL_SHARE), para no inflar el resto de
  *     platos intentando cubrir lo que se come fuera.
  */
@@ -32,6 +35,17 @@ export const MEALS = [
   { key: 'm', type: 'merienda', label: '🍎 Merienda (Media Tarde)' },
   { key: 'n', type: 'cena', label: '🥗 Cena' }
 ];
+
+/** Batido post-entreno (toma extra fija de los días de entreno). */
+export const POST_WORKOUT = {
+  key: 'x',
+  label: '🥤 Batido post-entreno',
+  name: 'Batido de proteína whey isolate (con agua)',
+  items: [['Proteína whey isolate', 35]]
+};
+
+/** Todas las claves de toma posibles en el resultado (5 comidas + batido). */
+export const ALL_KEYS = ['b', 'a', 'c', 'm', 'n', POST_WORKOUT.key];
 
 /** Valor que identifica "Fuera de casa" en los desplegables. */
 export const OUT = '#fuera';
@@ -97,7 +111,8 @@ export function tolerance(val, target, marginPct) {
 
 /**
  * Ajusta las raciones de UN día.
- * @param {Array<{key:string, items:Array<[string, number]>}>} meals  Tomas con sus ingredientes base.
+ * @param {Array<{key:string, items:Array<[string, number]>, fixed?:boolean}>} meals
+ *        Tomas con sus ingredientes base (fixed = no se reescala, p. ej. el batido post-entreno).
  * @param {object} target  Objetivo efectivo del día ({k,p,g,h}).
  * @param {object} foods   Base de alimentos.
  * @param {number} marginPct  Tolerancia en %.
@@ -119,11 +134,11 @@ function solveDay(meals, target, foods, marginPct, bounds) {
 
   // 1) Aplanar ingredientes: cada ingrediente de cada toma es una variable independiente
   const vars = [];
-  meals.forEach(({ key, items }) => {
+  meals.forEach(({ key, items, fixed }) => {
     items.forEach(([name, grams]) => {
       const f = foods[name];
       const base = Math.max(1, Number(grams) || 0);
-      let role = foodRole(f);
+      let role = fixed ? 'fixed' : foodRole(f);
       // Condimentos en cantidades mínimas (ajo, matcha…) no se escalan, salvo grasas añadidas.
       if (role !== 'fat' && base < 8) role = 'fixed';
       const v = { key, name, base, x: base, role, a: {} };
@@ -223,8 +238,14 @@ export function computeWeek(state, dishes, foods) {
       const dish = v && v !== OUT ? byName.get(v) : null;
       return { key, items: dish ? dish.i.map(([n, g]) => [n, Number(g) || 0]) : [] };
     });
+    // Día de entreno: batido fijo que se suma a las 5 comidas
+    meals.push({
+      key: POST_WORKOUT.key,
+      items: day.e ? POST_WORKOUT.items.map(([n, g]) => [n, g]) : [],
+      fixed: true
+    });
 
-    const anyDish = meals.some(m => m.items.length);
+    const anyDish = meals.some(m => !m.fixed && m.items.length);
     let result;
     if (anyDish && state.adjust) {
       result = adjustDay(meals, target, foods, state.t.m);
@@ -233,7 +254,7 @@ export function computeWeek(state, dishes, foods) {
       meals.forEach(m => { result[m.key] = m.items; });
     }
 
-    const all = MEALS.flatMap(({ key }) => result[key]);
+    const all = ALL_KEYS.flatMap(key => result[key] || []);
     return {
       meals: result,
       nut: calcNutrients(all, foods),
