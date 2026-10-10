@@ -1,3 +1,6 @@
+/* components.css — Componentes de la interfaz */
+
+/* ── Tarjetas ── */
 .card {
   background: var(--cd);
   border: 1px solid var(--ln);
@@ -11,9 +14,12 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 8px;
 }
+
+/* ── Formularios ── */
 select, input, button { font: inherit; color: var(--tx); }
-select, input {
+select, input:not([type="checkbox"]) {
   width: 100%;
   padding: 8px 10px;
   border: 1px solid var(--ln);
@@ -21,75 +27,113 @@ select, input {
   background: var(--bg);
   margin: 3px 0 8px;
 }
-label { font-size: 12px; font-weight: 500; color: var(--mu); }
+input[type="checkbox"] { width: 18px; height: 18px; margin: 0; accent-color: var(--ac); flex: 0 0 auto; }
+label { display: block; font-size: 12px; font-weight: 500; color: var(--mu); }
+label.inline { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; font-size: 13px; }
+select:focus-visible, input:focus-visible, .btn:focus-visible { outline: 2px solid var(--ac); outline-offset: 1px; }
+
+/* ── Botones ── */
 .btn {
   background: var(--ac);
   color: #fff;
-  border: 0;
+  border: 1px solid var(--ac);
   border-radius: 8px;
   padding: 9px 14px;
   font-weight: 600;
   cursor: pointer;
 }
-.btn.s { background: none; color: var(--ac); border: 1px solid var(--ac); }
-.btn.r { background: none; color: var(--bd); border: 1px solid var(--bd); }
+.btn.s { background: none; color: var(--ac); }
+.btn.r { background: none; color: var(--bd); border-color: var(--bd); }
+.btn.sm { padding: 4px 10px; font-size: 13px; }
+.btn.x { padding: 6px 10px; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.actions .btn { flex: 1 1 auto; }
+
+/* ── Días de la semana ── */
+.day .meal { margin-bottom: 2px; }
+.badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--ok);
+  color: #fff;
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+/* ── Indicadores: SOLO 4 chips (kcal, P, G, H) ── */
 .chips-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 6px;
-  margin-top: 8px;
+  margin-top: 10px;
 }
 .chip {
   border-radius: 8px;
-  padding: 6px 2px;
+  padding: 6px 4px;
   text-align: center;
-  font-size: 11px;
   border: 2px solid var(--ln);
   background: var(--bg);
+  min-width: 0;
 }
-.chip b { display: block; font-size: 14px; }
-.sub-chips {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 4px;
-  margin-top: 6px;
-  padding: 6px;
-  background: var(--bg);
-  border-radius: 8px;
-  font-size: 11px;
-  color: var(--mu);
+.chip .chip-label { display: block; font-size: 11px; color: var(--mu); line-height: 1.25; overflow-wrap: anywhere; }
+.chip b { display: block; font-size: 17px; line-height: 1.2; }
+.chip small { display: block; font-size: 11px; color: var(--mu); }
+.chip.ok { border-color: var(--ok); background: var(--ok-bg); }
+.chip.wa { border-color: var(--wa); background: var(--wa-bg); }
+.chip.bd { border-color: var(--bd); background: var(--bd-bg); }
+.chip.ok b { color: var(--ok); }
+.chip.wa b { color: var(--wa); }
+.chip.bd b { color: var(--bd); }
+
+/* Nutrientes secundarios: texto plano, sin recuadros */
+.mm { font-size: 12px; color: var(--mu); margin: 2px 0 6px; }
+.mm.sec { margin-top: 8px; }
+.color-danger { color: var(--bd); font-weight: 600; }
+.hint { font-size: 12px; color: var(--wa); margin: 6px 0 0; }
+
+@media (max-width: 420px) {
+  .chip .chip-label { font-size: 9.5px; }
+  .chip { padding: 6px 2px; }
+  .chip b { font-size: 15px; }
 }
-.sub-chips span b { color: var(--tx); }
-.ok { border-color: var(--ok); }
-.wa { border-color: var(--wa); }
-.bd { border-color: var(--bd); }
-.row { display: flex; gap: 8px; align-items: center; }
-.row > * { flex: 1; }
-.row > .w { flex: 0 0 80px; }
-.row > .x { flex: 0 0 auto; }
-.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+
+/* ── Lista de la compra ── */
 .it {
   display: flex;
   gap: 10px;
   align-items: center;
-  padding: 8px 0;
+  padding: 9px 0;
   border-bottom: 1px solid var(--ln);
+  font-size: 14px;
+  color: var(--tx);
+  cursor: pointer;
 }
-.it input { width: 18px; height: 18px; margin: 0; flex: 0 0 auto; }
+.it:last-child { border-bottom: 0; }
 .it span { flex: 1; }
-.it em { color: var(--mu); font-style: normal; font-size: 13px; }
-.it.d span { text-decoration: line-through; opacity: 0.5; }
-.mm { font-size: 12px; color: var(--mu); margin: 2px 0 6px; }
-.preview-box { padding: 8px; background: var(--bg); border-radius: 8px; font-size: 13px; margin: 6px 0; }
-.border-danger { border-color: var(--bd); }
-.color-danger { color: var(--bd); }
+.it em { color: var(--mu); font-style: normal; font-size: 12px; }
+.it.d span, .it.d b { text-decoration: line-through; opacity: 0.45; }
+
+/* ── Platos ── */
+.group-title { font-size: 0.95rem; margin: 16px 0 8px; color: var(--ac); }
+.group-title small { color: var(--mu); font-weight: 400; }
+.dish-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.dish-actions { display: flex; gap: 6px; flex: 0 0 auto; }
+.ing-line { font-size: 12px; color: var(--mu); margin: 0; }
+.row { display: flex; gap: 8px; align-items: center; }
+.row > select { flex: 1; }
+.row > .w { flex: 0 0 80px; }
+.row > .btn { flex: 0 0 auto; margin-bottom: 5px; }
+
+/* ── Utilidades ── */
+.grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 10px; }
 .w-100 { width: 100%; }
 .mt-1 { margin-top: 4px; }
 .mt-2 { margin-top: 8px; }
-.mb-2 { margin-bottom: 8px; }
 
-/* MODAL DEL MENÚ COMPLETO */
+/* ── Modal del menú completo ── */
 .modal {
   border: 1px solid var(--ln);
   border-radius: 12px;
@@ -97,11 +141,11 @@ label { font-size: 12px; font-weight: 500; color: var(--mu); }
   color: var(--tx);
   max-width: 640px;
   width: 95%;
-  max-height: 85vh;
+  max-height: 88vh;
   padding: 0;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
 }
-.modal::backdrop { background: rgba(0,0,0,0.5); backdrop-filter: blur(2px); }
+.modal::backdrop { background: rgba(0, 0, 0, 0.5); }
 .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--ln); }
 .modal-header h2 { margin: 0; font-size: 1.15rem; }
 .modal-body { padding: 16px; overflow-y: auto; max-height: 65vh; }
@@ -109,8 +153,16 @@ label { font-size: 12px; font-weight: 500; color: var(--mu); }
 .day-menu-card { background: var(--bg); border: 1px solid var(--ln); border-radius: 8px; padding: 12px; margin-bottom: 12px; }
 .day-menu-card h3 { margin: 0 0 8px; font-size: 1rem; color: var(--ac); }
 .meal-block { margin-bottom: 8px; }
-.meal-title { font-weight: 600; font-size: 13px; color: var(--mu); text-transform: uppercase; }
-.dish-details { margin-top: 2px; }
+.meal-title { font-weight: 600; font-size: 13px; color: var(--mu); }
 .dish-details summary { cursor: pointer; font-weight: 500; font-size: 14px; }
-.dish-details summary:hover { color: var(--ac); }
-.dish-ingredients { padding-left: 18px; margin: 4px 0 0; font-size: 12px; color: var(--mu); line-height: 1.5; }
+.dish-ingredients { padding-left: 18px; margin: 4px 0 2px; font-size: 13px; line-height: 1.5; }
+.day-total { font-size: 13px; font-weight: 600; margin: 8px 0 0; padding-top: 8px; border-top: 1px dashed var(--ln); }
+
+/* ── Impresión: solo el contenido del modal ── */
+@media print {
+  body > header, body > main { display: none !important; }
+  .modal { position: static; display: block; border: 0; box-shadow: none; max-height: none; width: 100%; max-width: none; }
+  .modal-header .btn, .modal-footer { display: none; }
+  .modal-body { max-height: none; overflow: visible; }
+  .day-menu-card { break-inside: avoid; }
+}

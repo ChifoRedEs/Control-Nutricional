@@ -1,7 +1,8 @@
+/* layout.css — Estructura general y navegación por pestañas */
 * { box-sizing: border-box; }
 body {
   margin: 0;
-  font: 15px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font: 15px/1.45 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   background: var(--bg);
   color: var(--tx);
 }
@@ -13,19 +14,24 @@ header {
   padding: 8px 12px 0;
   border-bottom: 1px solid var(--ln);
 }
-header h1 { font-size: 1.15rem; margin: 0 0 6px; }
-nav { display: flex; gap: 4px; }
+header h1 { font-size: 1.15rem; margin: 0 0 6px; max-width: 680px; margin-inline: auto; }
+nav { display: flex; gap: 4px; max-width: 680px; margin: auto; }
 nav button {
   flex: 1;
   padding: 10px 4px;
   border: 0;
+  border-bottom: 3px solid transparent;
   background: none;
   color: var(--mu);
-  font: 600 14px inherit;
-  border-bottom: 3px solid transparent;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
   cursor: pointer;
 }
-nav button.on { color: var(--ac); border-color: var(--ac); }
+nav button.on { color: var(--ac); border-bottom-color: var(--ac); }
+nav button:focus-visible { outline: 2px solid var(--ac); outline-offset: -2px; }
 main { padding: 12px; max-width: 680px; margin: auto; }
+
+/* Pestañas: SOLO la sección con .on es visible */
 .tab { display: none; }
 .tab.on { display: block; }
