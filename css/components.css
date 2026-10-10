@@ -112,7 +112,7 @@ select:focus-visible, input:focus-visible, .btn:focus-visible { outline: 2px sol
   cursor: pointer;
 }
 .it:last-child { border-bottom: 0; }
-.it span { flex: 1; }
+.it > span { flex: 1; }
 .it em { color: var(--mu); font-style: normal; font-size: 12px; }
 .it.d span, .it.d b { text-decoration: line-through; opacity: 0.45; }
 
@@ -166,3 +166,77 @@ select:focus-visible, input:focus-visible, .btn:focus-visible { outline: 2px sol
   .modal-body { max-height: none; overflow: visible; }
   .day-menu-card { break-inside: avoid; }
 }
+
+/* ── Sub-pestañas (días en Semana, tipos en Platos) ── */
+.sub-tabs {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+.sub-tabs.days { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.sub-tabs.types { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.sub-tab {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 8px 2px 10px;
+  border: 1px solid var(--ln);
+  border-radius: 8px;
+  background: var(--cd);
+  color: var(--mu);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  line-height: 1.15;
+}
+.sub-tab small { font-size: 10px; font-weight: 500; }
+.sub-tab .ico { font-size: 16px; }
+.sub-tab.on { background: var(--ac); border-color: var(--ac); color: #fff; }
+.sub-tab:focus-visible { outline: 2px solid var(--ac); outline-offset: 1px; }
+/* Punto de estado del día: vacío (gris) · en objetivo (verde) · revisar (naranja) */
+.sub-tab .dot {
+  position: absolute;
+  bottom: 3px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ln);
+}
+.sub-tab .dot.ok { background: var(--ok); }
+.sub-tab .dot.wa { background: var(--wa); }
+.sub-tab.on .dot { box-shadow: 0 0 0 1.5px #fff; }
+@media (max-width: 420px) {
+  .sub-tabs.types .sub-tab { font-size: 10.5px; }
+}
+
+/* ── Batido post-entreno ── */
+.meal.post {
+  margin: 8px 0 2px;
+  padding: 8px 10px;
+  border-left: 3px solid var(--ac);
+  background: var(--ok-bg);
+  border-radius: 0 8px 8px 0;
+}
+.post-line { font-size: 12px; margin: 2px 0 0; }
+.dish-sub { font-size: 14px; margin: 2px 0 0; }
+
+/* ── Compra agrupada: nombre del grupo + desglose ── */
+.it > span { display: flex; flex-direction: column; }
+.it-name { font-weight: 500; }
+.it > span em { margin-top: 1px; }
+
+/* ── Formulario plegable de platos ── */
+.form-card > summary {
+  cursor: pointer;
+  font-weight: 600;
+  list-style: none;
+  color: var(--ac);
+}
+.form-card > summary::-webkit-details-marker { display: none; }
+.form-card[open] > summary { margin-bottom: 10px; }
+.mm#mode-info { margin-bottom: 10px; }
+.sub-tab .train { position: absolute; top: 1px; right: 3px; font-size: 10px; }
