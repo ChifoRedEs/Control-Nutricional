@@ -150,7 +150,7 @@ export function adjustPortionsToTargets(notify = true) {
       }
     });
 
-    for (let step = 0; step < 16; step++) {
+    for (let step = 0; step < 20; step++) {
       const currentList = allMealItems.map(x => [x.n, x.w]);
       const cur = calcNutrients(currentList, foods);
 
@@ -158,24 +158,24 @@ export function adjustPortionsToTargets(notify = true) {
       const diffH = T.h - cur.h;
       const diffG = T.g - cur.g;
 
-      if (protItems.length && Math.abs(diffP) > 0.5) {
+      if (protItems.length && Math.abs(diffP) > 0.4) {
         const deltaEach = (diffP / protItems.length) / 0.22;
         protItems.forEach(item => {
-          item.w = Math.max(15, Math.min(450, item.w + deltaEach * 0.7));
+          item.w = Math.max(15, Math.min(500, item.w + deltaEach * 0.7));
         });
       }
 
-      if (carbItems.length && Math.abs(diffH) > 0.5) {
+      if (carbItems.length && Math.abs(diffH) > 0.4) {
         const deltaEach = (diffH / carbItems.length) / 0.65;
         carbItems.forEach(item => {
-          item.w = Math.max(10, Math.min(250, item.w + deltaEach * 0.7));
+          item.w = Math.max(10, Math.min(300, item.w + deltaEach * 0.7));
         });
       }
 
-      if (fatItems.length && Math.abs(diffG) > 0.5) {
+      if (fatItems.length && Math.abs(diffG) > 0.4) {
         const deltaEach = (diffG / fatItems.length) / 1.0;
         fatItems.forEach(item => {
-          item.w = Math.max(2, Math.min(45, item.w + deltaEach * 0.7));
+          item.w = Math.max(2, Math.min(50, item.w + deltaEach * 0.7));
         });
       }
     }
@@ -310,10 +310,11 @@ function renderAll() {
 }
 
 function setupEvents() {
+  // Pestañas (corrige la navegación entre secciones usando .tab)
   $$('.tab-btn').forEach(btn => {
     btn.onclick = () => {
       $$('.tab-btn').forEach(b => { b.classList.remove('on'); b.setAttribute('aria-selected', 'false'); });
-      $$('.panel').forEach(p => p.classList.remove('on'));
+      $$('.tab').forEach(p => p.classList.remove('on'));
       btn.classList.add('on');
       btn.setAttribute('aria-selected', 'true');
       $('#t' + btn.dataset.t).classList.add('on');
@@ -324,6 +325,7 @@ function setupEvents() {
   $('#close-menu-modal').onclick = () => $('#menu-modal').close();
   $('#close-menu-modal-btn').onclick = () => $('#menu-modal').close();
 
+  // Actualización reactiva al cambiar cualquier comida
   $('#wk').addEventListener('change', e => {
     const t = e.target;
     const d = t.dataset;
