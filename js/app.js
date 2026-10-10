@@ -1,36 +1,24 @@
 import { state, loadState, saveState, getAllFoods, getAllDishes } from './state.js';
-import { FIXED_SNACKS } from './data/dishes.js';
 import { calcNutrients, formatNutrientSummary } from './nutrition.js';
 
 const DAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 const $ = s => document.querySelector(s);
-const $$ = s => [...document.querySelectorAll(s)];
-const r = Math.round;
-const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const $$ = s => document.querySelectorAll(s);
 
-function init() {
-  loadState();
-  bindEvents();
-  syncSettingsInputs();
-  renderAll();
-  addRow();
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
-  }
-}
+const r = n => Math.round(n || 0);
+const esc = s => (s || '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[m]);
 
-function getDayItems(d) {
-  if (d.customItems && d.customItems.length) {
-    return d.customItems;
-  }
-  let it = [...FIXED_SNACKS.almuerzo, ...(d.e ? FIXED_SNACKS.meriendaEntreno : FIXED_SNACKS.meriendaDescanso)];
+export function getDayItems(d) {
+  if (d.customItems && d.customItems.length) return d.customItems;
+  let it = [];
   const dishes = getAllDishes();
-  const bDish = dishes.find(x => x.n === d.b);
-  const cDish = dishes.find(x => x.n === d.c);
-  const nDish = dishes.find(x => x.n === d.n);
-  if (bDish) it = it.concat(bDish.i);
-  if (cDish) it = it.concat(cDish.i);
-  if (nDish) it = it.concat(nDish.i);
+  ['b', 'a', 'c', 'm', 'n'].forEach(key => {
+    const val = d[key];
+    if (val && val !== '#fuera') {
+      const dish = dishes.find(x => x.n === val);
+      if (dish && dish.i) it = it.concat(dish.i);
+    }
+  });
   return it;
 }
 
@@ -41,31 +29,19 @@ function evaluateTolerance(val, target, isMaxCap) {
   return err <= margin ? 'ok' : err <= 2 * margin ? 'wa' : 'bd';
 }
 
-function renderChips(nutrients, multiplier = 1) {
+function renderChips(nut, daysCount = 1) {
   const T = state.t;
-  const cards = [
-    { label: 'kcal', val: nutrients.k, t: T.k * multiplier, max: false },
-    { label: 'Prot (g)', val: nutrients.p, t: T.p * multiplier, max: false },
-    { label: 'Grasa (g)', val: nutrients.g, t: T.g * multiplier, max: true },
-    { label: 'Hidr (g)', val: nutrients.h, t: T.h * multiplier, max: false }
-  ];
+  const target = k => T[k] * daysCount;
 
-  const mainChips = cards.map(c => 
-    '<div class="chip ' + evaluateTolerance(c.val, c.t, c.max) + '">' +
-      '<b>' + r(c.val) + '</b>' +
-      '<span>' + c.label + ' / ' + r(c.t) + '</span>' +
-    '</div>'
-  ).join('');
-
-  const subChips = 
-    '<div class="sub-chips">' +
-      '<span>Sat: <b>' + r(nutrients.gSat) + 'g</b></span>' +
-      '<span>Azúcar: <b>' + r(nutrients.az) + 'g</b></span>' +
-      '<span>Fibra: <b>' + r(nutrients.fib) + 'g</b></span>' +
-      '<span>H. Netos: <b>' + r(nutrients.hNet) + 'g</b></span>' +
-    '</div>';
-
-  return '<div class="chips-grid">' + mainChips + '</div>' + subChips;
+  return '<div class="macro-chips">' +
+    '<span class="chip ' + evaluateTolerance(nut.k, target('k')) + '">⚡ ' + r(nut.k) + ' / ' + r(target('k')) + ' kcal</span>' +
+    '<span class="chip ' + evaluateTolerance(nut.p, target('p')) + '">🥩 ' + r(nut.p) + ' / ' + r(target('p')) + 'g P</span>' +
+    '<span class="chip ' + evaluateTolerance(nut.g, target('g')) + '">🥑 ' + r(nut.g) + ' / ' + r(target('g')) + 'g G</span>' +
+    '<span class="chip ' + evaluateTolerance(nut.h, target('h')) + '">🍞 ' + r(nut.h) + ' / ' + r(target('h')) + 'g H</span>' +
+    '<span class="chip ' + evaluateTolerance(nut.gSat, target('gSat'), true) + '">🧈 Sat: ' + r(nut.gSat) + ' / ' + r(target('gSat')) + 'g</span>' +
+    '<span class="chip ' + evaluateTolerance(nut.az, target('az'), true) + '">🍬 Az: ' + r(nut.az) + ' / ' + r(target('az')) + 'g</span>' +
+    '<span class="chip ' + (nut.fib < target('fib') ? 'bd' : 'ok') + '">🌾 Fib: ' + r(nut.fib) + ' / ' + r(target('fib')) + 'g</span>' +
+  '</div>';
 }
 
 function renderWeek() {
@@ -74,16 +50,23 @@ function renderWeek() {
 
   $('#wk').innerHTML = state.plan.map((d, i) => {
     const tot = calcNutrients(getDayItems(d), foods);
-    const db = dishes.find(x => x.n === d.b);
-    const dc = dishes.find(x => x.n === d.c);
-    const dn = dishes.find(x => x.n === d.n);
+    const getItemsFor = key => (d.customMeals && d.customMeals[key]) || (dishes.find(x => x.n === d[key])?.i || []);
 
     const dishOptions = (type, current) => 
       '<option value="">— Elegir ' + type + ' —</option>' +
       '<option value="#fuera" ' + (current === '#fuera' ? 'selected' : '') + '>🍴 Fuera de casa</option>' +
       dishes.filter(x => x.t === type).map(x => '<option value="' + esc(x.n) + '" ' + (x.n === current ? 'selected' : '') + '>' + esc(x.n) + '</option>').join('');
 
-    const adjustedBadge = d.customItems ? '<span style="font-size:11px;background:var(--ok);color:white;padding:2px 6px;border-radius:4px;margin-left:6px">Raciones Auto-Ajustadas</span>' : '';
+    const mealRow = (label, type, key) => {
+      const current = d[key];
+      const items = getItemsFor(key);
+      const summary = current === '#fuera' ? 'Fuera de casa' : current ? formatNutrientSummary(calcNutrients(items, foods)) : 'Sin asignar';
+      return '<label for="' + type + '-' + i + '">' + label + '</label>' +
+             '<select id="' + type + '-' + i + '" data-' + key + '="' + i + '">' + dishOptions(type, current) + '</select>' +
+             '<p class="mm">' + summary + '</p>';
+    };
+
+    const adjustedBadge = d.customItems ? '<span style="font-size:11px;background:var(--ok);color:white;padding:2px 6px;border-radius:4px;margin-left:6px">Ajustado</span>' : '';
 
     return '<div class="card">' +
       '<h3>' +
@@ -92,196 +75,159 @@ function renderWeek() {
           '<input type="checkbox" data-e="' + i + '" ' + (d.e ? 'checked' : '') + ' style="width:auto;margin:0"> Entreno' +
         '</label>' +
       '</h3>' +
-      '<label for="desayuno-' + i + '">Desayuno</label>' +
-      '<select id="desayuno-' + i + '" data-b="' + i + '">' + dishOptions('desayuno', d.b) + '</select>' +
-      '<p class="mm">' + (db ? formatNutrientSummary(calcNutrients(db.i, foods)) : d.b === '#fuera' ? 'Fuera de casa' : 'Sin asignar') + '</p>' +
-
-      '<label for="comida-' + i + '">Comida</label>' +
-      '<select id="comida-' + i + '" data-c="' + i + '">' + dishOptions('comida', d.c) + '</select>' +
-      '<p class="mm">' + (dc ? formatNutrientSummary(calcNutrients(dc.i, foods)) : d.c === '#fuera' ? 'Fuera de casa' : 'Sin asignar') + '</p>' +
-
-      '<label for="cena-' + i + '">Cena</label>' +
-      '<select id="cena-' + i + '" data-n="' + i + '">' + dishOptions('cena', d.n) + '</select>' +
-      '<p class="mm">' + (dn ? formatNutrientSummary(calcNutrients(dn.i, foods)) : d.n === '#fuera' ? 'Fuera de casa' : 'Sin asignar') + '</p>' +
-
+      mealRow('🥞 Desayuno', 'desayuno', 'b') +
+      mealRow('🥪 Almuerzo (Media Mañana)', 'almuerzo', 'a') +
+      mealRow('🍲 Comida', 'comida', 'c') +
+      mealRow('🍎 Merienda (Tarde)', 'merienda', 'm') +
+      mealRow('🥗 Cena', 'cena', 'n') +
       renderChips(tot, 1) +
     '</div>';
   }).join('');
 
-  const foodsDb = getAllFoods();
   const weeklyTotals = state.plan.reduce((acc, d) => {
-    const dayNuts = calcNutrients(getDayItems(d), foodsDb);
+    const dayNuts = calcNutrients(getDayItems(d), foods);
     for (const k in acc) acc[k] += dayNuts[k];
     return acc;
-  }, { k: 0, p: 0, g: 0, gSat: 0, h: 0, az: 0, fib: 0, hNet: 0 });
+  }, { k: 0, p: 0, g: 0, h: 0, gSat: 0, az: 0, fib: 0 });
 
-  const dailyAvg = {};
-  for (const k in weeklyTotals) dailyAvg[k] = weeklyTotals[k] / 7;
-
-  $('#sum').innerHTML = 
-    '<h3>📊 Resumen Semanal</h3>' +
-    '<p class="mm">Media diaria real conseguida</p>' +
-    renderChips(dailyAvg, 1) +
+  $('#wk-sum').innerHTML = '<h3>Resumen Semanal Nutricional</h3>' +
+    '<p class="mm">Media diaria (7 días)</p>' +
+    renderChips({
+      k: weeklyTotals.k / 7,
+      p: weeklyTotals.p / 7,
+      g: weeklyTotals.g / 7,
+      h: weeklyTotals.h / 7,
+      gSat: weeklyTotals.gSat / 7,
+      az: weeklyTotals.az / 7,
+      fib: weeklyTotals.fib / 7
+    }, 1) +
     '<p class="mm" style="margin-top:10px">Total acumulado 7 días</p>' +
     renderChips(weeklyTotals, 7);
 }
 
-// ALGORITMO OPCIÓN A: REESCALADO EXACTO POR INGREDIENTES CLAVE
-function generateBalancedWeek() {
+export function adjustPortionsToTargets(notify = true) {
   const dishes = getAllDishes();
   const foods = getAllFoods();
-  const desayunos = dishes.filter(d => d.t === 'desayuno');
-  const comidas = dishes.filter(d => d.t === 'comida');
-  const cenas = dishes.filter(d => d.t === 'cena');
+  const T = state.t;
 
-  if (!comidas.length || !cenas.length) {
-    return alert('Debes tener comidas y cenas disponibles.');
-  }
+  let adjustedCount = 0;
 
-  const T = state.t; // Objetivos: k, p, g, h
-  const newPlan = [];
+  state.plan.forEach(day => {
+    const mealKeys = ['b', 'a', 'c', 'm', 'n'];
+    let allMealItems = [];
 
-  for (let day = 0; day < 7; day++) {
-    const isTraining = state.plan[day].e;
-    const baseSnacks = [...FIXED_SNACKS.almuerzo, ...(isTraining ? FIXED_SNACKS.meriendaEntreno : FIXED_SNACKS.meriendaDescanso)];
-
-    // Selección variada
-    const bDish = desayunos[day % desayunos.length] || { n: '', i: [] };
-    const cDish = comidas[(day * 2) % comidas.length];
-    const nDish = cenas[(day * 2 + 1) % cenas.length];
-
-    // Clonamos los ingredientes de comida y cena para reescalar
-    let dayMealsItems = [
-      ...bDish.i.map(([n, w]) => [n, w]),
-      ...cDish.i.map(([n, w]) => [n, w]),
-      ...nDish.i.map(([n, w]) => [n, w])
-    ];
-
-    // Identificamos los ingredientes clave del día para ajustar
-    // 1. Proteínas: carne, pescado, huevo
-    const proteinItems = dayMealsItems.filter(([n]) => {
-      const f = foods[n];
-      return f && f.p >= 15 && f.h <= 10;
+    mealKeys.forEach(mKey => {
+      const val = day[mKey];
+      if (val && val !== '#fuera') {
+        const dish = dishes.find(x => x.n === val);
+        if (dish && dish.i) {
+          dish.i.forEach(([n, w]) => {
+            allMealItems.push({ n, w: Number(w), m: mKey });
+          });
+        }
+      }
     });
 
-    // 2. Carbohidratos: arroz, pasta, pan, patata, legumbre
-    const carbItems = dayMealsItems.filter(([n]) => {
-      const f = foods[n];
-      return f && f.h >= 15 && f.p < 15;
+    if (!allMealItems.length) {
+      day.customMeals = null;
+      day.customItems = null;
+      return;
+    }
+
+    const protItems = [];
+    const carbItems = [];
+    const fatItems = [];
+
+    allMealItems.forEach(item => {
+      const f = foods[item.n];
+      if (!f) return;
+      if (item.n.includes('Aceite') || (f.g >= 20 && f.g > f.p && f.g > f.h)) {
+        fatItems.push(item);
+      } else if (f.p >= 12 && f.p >= f.h) {
+        protItems.push(item);
+      } else if (f.h >= 14 && f.h > f.p) {
+        carbItems.push(item);
+      }
     });
 
-    // 3. Grasas: aceites
-    const fatItems = dayMealsItems.filter(([n]) => n === 'Aceite de oliva');
-
-    // Bucle de ajuste convergente en 3 pasadas para clavar el objetivo
-    for (let iter = 0; iter < 4; iter++) {
-      const currentItems = [...baseSnacks, ...dayMealsItems];
-      const cur = calcNutrients(currentItems, foods);
+    for (let step = 0; step < 16; step++) {
+      const currentList = allMealItems.map(x => [x.n, x.w]);
+      const cur = calcNutrients(currentList, foods);
 
       const diffP = T.p - cur.p;
       const diffH = T.h - cur.h;
       const diffG = T.g - cur.g;
 
-      // Ajustar proteína reescalando carne/pescado del día
-      if (proteinItems.length && Math.abs(diffP) > 1) {
-        const deltaEach = (diffP / proteinItems.length) / 0.22; // ~22% proteína media
-        proteinItems.forEach(item => {
-          item[1] = Math.max(50, Math.min(300, r(item[1] + deltaEach)));
+      if (protItems.length && Math.abs(diffP) > 0.5) {
+        const deltaEach = (diffP / protItems.length) / 0.22;
+        protItems.forEach(item => {
+          item.w = Math.max(15, Math.min(450, item.w + deltaEach * 0.7));
         });
       }
 
-      // Ajustar carbohidratos reescalando arroz/pasta/pan
-      if (carbItems.length && Math.abs(diffH) > 2) {
-        const deltaEach = (diffH / carbItems.length) / 0.65; // ~65% hidratos media
+      if (carbItems.length && Math.abs(diffH) > 0.5) {
+        const deltaEach = (diffH / carbItems.length) / 0.65;
         carbItems.forEach(item => {
-          item[1] = Math.max(20, Math.min(150, r(item[1] + deltaEach)));
+          item.w = Math.max(10, Math.min(250, item.w + deltaEach * 0.7));
         });
       }
 
-      // Ajustar grasas reescalando el aceite de oliva
-      if (fatItems.length && Math.abs(diffG) > 1) {
-        const deltaEach = (diffG / fatItems.length) / 1.0; // 100% grasa
+      if (fatItems.length && Math.abs(diffG) > 0.5) {
+        const deltaEach = (diffG / fatItems.length) / 1.0;
         fatItems.forEach(item => {
-          item[1] = Math.max(4, Math.min(35, r(item[1] + deltaEach)));
+          item.w = Math.max(2, Math.min(45, item.w + deltaEach * 0.7));
         });
       }
     }
 
-    // Guardamos el día con sus raciones reescaladas exactamente
-    newPlan.push({
-      b: bDish.n,
-      c: cDish.n,
-      n: nDish.n,
-      e: isTraining,
-      customItems: [...baseSnacks, ...dayMealsItems]
-    });
-  }
+    allMealItems.forEach(item => { item.w = Math.round(item.w); });
 
-  state.plan = newPlan;
+    const filterM = k => allMealItems.filter(x => x.m === k).map(x => [x.n, x.w]);
+    day.customMeals = {
+      b: filterM('b'),
+      a: filterM('a'),
+      c: filterM('c'),
+      m: filterM('m'),
+      n: filterM('n')
+    };
+    day.customItems = allMealItems.map(x => [x.n, x.w]);
+    adjustedCount++;
+  });
+
   saveState();
   renderAll();
+
+  if (notify) {
+    if (adjustedCount > 0) alert('✅ Las raciones de las 5 comidas se han ajustado exactamente a tus objetivos.');
+    else alert('ℹ️ Selecciona primero los platos en los días de la semana.');
+  }
 }
 
-// RENDERIZADO DEL MODAL CON EL MENÚ COMPLETO
 function renderMenuModal() {
-  const dishes = getAllDishes();
   const content = $('#menu-modal-content');
-  const formatList = (items) => items.map(([n, w]) => '<li>' + esc(n) + ': <b>' + r(w) + ' g</b></li>').join('');
+  const formatList = items => (items && items.length) 
+    ? items.map(([n, w]) => '<li>' + esc(n) + ': <b>' + r(w) + ' g</b></li>').join('') 
+    : '<li>Sin datos</li>';
+
+  const dishes = getAllDishes();
 
   content.innerHTML = state.plan.map((d, i) => {
     const isTraining = d.e;
-    const almuerzoItems = FIXED_SNACKS.almuerzo;
-    const meriendaItems = isTraining ? FIXED_SNACKS.meriendaEntreno : FIXED_SNACKS.meriendaDescanso;
+    const getItems = key => (d.customMeals && d.customMeals[key]) || (dishes.find(x => x.n === d[key])?.i || []);
 
-    // Recuperamos los ingredientes exactos (ajustados si existen)
-    const dayItems = getDayItems(d);
-    const bDish = dishes.find(x => x.n === d.b);
-    const cDish = dishes.find(x => x.n === d.c);
-    const nDish = dishes.find(x => x.n === d.n);
+    const block = (title, key) => {
+      const val = d[key];
+      const items = getItems(key);
+      return '<div class="meal-block"><div class="meal-title">' + title + '</div><details class="dish-details" open><summary>' + esc(val === '#fuera' ? 'Fuera de casa' : val || 'Sin asignar') + '</summary><ul class="dish-ingredients">' + (val === '#fuera' ? '<li>Comida fuera de casa</li>' : formatList(items)) + '</ul></details></div>';
+    };
 
     return '<div class="day-menu-card">' +
-      '<h3>' + DAYS[i] + ' ' + (isTraining ? '⚡ (Día de Entreno)' : '🛋️ (Descanso)') + '</h3>' +
-      
-      '<div class="meal-block">' +
-        '<div class="meal-title">🥞 Desayuno</div>' +
-        '<details class="dish-details" open>' +
-          '<summary>' + esc(d.b || 'Sin asignar') + '</summary>' +
-          '<ul class="dish-ingredients">' + (bDish ? formatList(bDish.i) : '<li>Sin datos</li>') + '</ul>' +
-        '</details>' +
-      '</div>' +
-
-      '<div class="meal-block">' +
-        '<div class="meal-title">🥪 Almuerzo (Media Mañana)</div>' +
-        '<details class="dish-details">' +
-          '<summary>Base fija diaria</summary>' +
-          '<ul class="dish-ingredients">' + formatList(almuerzoItems) + '</ul>' +
-        '</details>' +
-      '</div>' +
-
-      '<div class="meal-block">' +
-        '<div class="meal-title">🍲 Comida</div>' +
-        '<details class="dish-details" open>' +
-          '<summary>' + esc(d.c || 'Sin asignar') + '</summary>' +
-          '<ul class="dish-ingredients">' + (cDish ? formatList(cDish.i) : '<li>Sin datos</li>') + '</ul>' +
-        '</details>' +
-      '</div>' +
-
-      '<div class="meal-block">' +
-        '<div class="meal-title">🍎 Merienda ' + (isTraining ? '(Pre-Entreno)' : '') + '</div>' +
-        '<details class="dish-details">' +
-          '<summary>' + (isTraining ? 'Yogur proteico con arándanos y nueces' : 'Fruta con tortita y nueces') + '</summary>' +
-          '<ul class="dish-ingredients">' + formatList(meriendaItems) + '</ul>' +
-        '</details>' +
-      '</div>' +
-
-      '<div class="meal-block">' +
-        '<div class="meal-title">🥗 Cena</div>' +
-        '<details class="dish-details" open>' +
-          '<summary>' + esc(d.n || 'Sin asignar') + '</summary>' +
-          '<ul class="dish-ingredients">' + (nDish ? formatList(nDish.i) : '<li>Sin datos</li>') + '</ul>' +
-        '</details>' +
-      '</div>' +
-
+      '<h3>' + DAYS[i] + ' ' + (isTraining ? '⚡ (Entreno)' : '🛋️ (Descanso)') + '</h3>' +
+      block('🥞 Desayuno', 'b') +
+      block('🥪 Almuerzo (Media Mañana)', 'a') +
+      block('🍲 Comida', 'c') +
+      block('🍎 Merienda (Tarde)', 'm') +
+      block('🥗 Cena', 'n') +
     '</div>';
   }).join('');
 }
@@ -308,138 +254,107 @@ function renderShop() {
     categories[cat].sort().map(name => {
       const f = foods[name] || {};
       const unitInfo = f.u ? ' · ≈ ' + (totals[name] / f.u).toFixed(1) + ' ' + esc(f.un || 'ud') : '';
-      const isChecked = !!state.chk[name];
-      return '<label class="it ' + (isChecked ? 'd' : '') + '">' +
-        '<input type="checkbox" data-k="' + esc(name) + '" ' + (isChecked ? 'checked' : '') + '>' +
-        '<span>' + esc(name) + '</span>' +
-        '<em>' + formatQty(totals[name]) + unitInfo + '</em>' +
-      '</label>';
+      const checked = state.chk[name] ? 'checked' : '';
+      return '<div class="shop-item">' +
+        '<input type="checkbox" data-s="' + esc(name) + '" ' + checked + ' id="chk-' + esc(name) + '">' +
+        '<label for="chk-' + esc(name) + '" style="margin:0;cursor:pointer;flex:1">' + esc(name) + unitInfo + '</label>' +
+        '<b>' + formatQty(totals[name]) + '</b>' +
+      '</div>';
     }).join('')
-  ).join('');
+  ).join('') || '<p class="mm">No hay ingredientes en el menú semanal.</p>';
 }
 
+let editingDishIndex = null;
 function renderDishes() {
   const dishes = getAllDishes();
   const foods = getAllFoods();
 
-  $('#dl').innerHTML = ['desayuno', 'comida', 'cena'].map(type => 
-    '<h4 style="margin:12px 0 6px;text-transform:capitalize;color:var(--ac)">' + type + 's</h4>' +
-    dishes.filter(d => d.t === type).map(d => 
-      '<div class="card">' +
-        '<h3>' +
-          esc(d.n) +
-          '<span style="display:flex;gap:4px">' +
-            '<button class="btn s" data-ed="' + esc(d.n) + '" aria-label="Editar" style="padding:4px 8px">✏️</button>' +
-            '<button class="btn r" data-del="' + esc(d.n) + '" aria-label="Eliminar" style="padding:4px 8px">✕</button>' +
-          '</span>' +
-        '</h3>' +
-        '<p class="mm">' + formatNutrientSummary(calcNutrients(d.i, foods)) + '</p>' +
-        '<p class="mm" style="font-size:11px">' + d.i.map(([name, w]) => esc(name) + ' (' + w + 'g)').join(' · ') + '</p>' +
-      '</div>'
-    ).join('')
-  ).join('');
+  $('#dish-list').innerHTML = dishes.map((dish, idx) => {
+    const isCustom = idx >= (dishes.length - state.dishes.length);
+    const nuts = calcNutrients(dish.i, foods);
 
-  $('#cats').innerHTML = [...new Set(Object.values(foods).map(f => f.cat))].map(c => '<option value="' + esc(c) + '">').join('');
-  $('#foods-dl').innerHTML = Object.keys(foods).sort().map(f => '<option value="' + esc(f) + '">').join('');
+    return '<div class="card mb-2">' +
+      '<div style="display:flex;justify-content:space-between;align-items:start">' +
+        '<div>' +
+          '<b>' + esc(dish.n) + '</b> <span class="badge">' + esc(dish.t) + '</span>' +
+          '<p class="mm" style="margin:4px 0">' + formatNutrientSummary(nuts) + '</p>' +
+          '<ul style="margin:4px 0 0;padding-left:18px;font-size:12px;color:var(--tx-m)">' +
+            dish.i.map(([name, weight]) => '<li>' + esc(name) + ': ' + weight + 'g</li>').join('') +
+          '</ul>' +
+        '</div>' +
+        '<div style="display:flex;gap:6px">' +
+          (isCustom ? '<button class="btn s" data-ed="' + (idx - (dishes.length - state.dishes.length)) + '">Editar</button>' : '') +
+          (isCustom ? '<button class="btn r x" data-dd="' + (idx - (dishes.length - state.dishes.length)) + '">✕</button>' : '') +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
 }
 
-let editingDish = null;
-
-function addRow(name = '', grams = '') {
-  const container = document.createElement('div');
-  container.className = 'row mt-1';
-  container.innerHTML = 
-    '<input list="foods-dl" class="ing-name" placeholder="Selecciona o escribe alimento" value="' + esc(name) + '">' +
-    '<input class="w" type="number" step="1" placeholder="g" value="' + grams + '">' +
-    '<button class="btn r x" aria-label="Quitar">✕</button>';
-  $('#dr').appendChild(container);
-  previewCurrentDish();
-}
-
-function previewCurrentDish() {
-  const rows = $$('#dr .row').map(row => [
-    row.querySelector('.ing-name').value.trim(),
-    +row.querySelector('.w').value || 0
-  ]).filter(([n, w]) => n && w > 0);
-
-  const nutrients = calcNutrients(rows, getAllFoods());
-  $('#dp').textContent = formatNutrientSummary(nutrients);
-}
-
-function syncSettingsInputs() {
-  const mapping = [
-    ['tk', 'k'], ['tp', 'p'], ['tg', 'g'], ['th', 'h'],
-    ['tsat', 'gSat'], ['taz', 'az'], ['tfib', 'fib'], ['tm', 'm']
-  ];
-  mapping.forEach(([id, key]) => {
-    const el = $('#' + id);
-    if (el) el.value = state.t[key] ?? '';
-  });
+function renderSettings() {
+  $('#tk').value = state.t.k;
+  $('#tp').value = state.t.p;
+  $('#tg').value = state.t.g;
+  $('#th').value = state.t.h;
+  $('#tgs').value = state.t.gSat;
+  $('#taz').value = state.t.az;
+  $('#tfb').value = state.t.fib;
+  $('#tm').value = state.t.m || 5;
 }
 
 function renderAll() {
   renderWeek();
   renderShop();
   renderDishes();
+  renderSettings();
 }
 
-function bindEvents() {
-  $$('nav button').forEach(btn => {
+function setupEvents() {
+  $$('.tab-btn').forEach(btn => {
     btn.onclick = () => {
-      $$('nav button, .tab').forEach(el => el.classList.remove('on'));
+      $$('.tab-btn').forEach(b => { b.classList.remove('on'); b.setAttribute('aria-selected', 'false'); });
+      $$('.panel').forEach(p => p.classList.remove('on'));
       btn.classList.add('on');
-      const targetTab = $('#' + btn.dataset.t);
-      if (targetTab) targetTab.classList.add('on');
-      window.scrollTo(0, 0);
+      btn.setAttribute('aria-selected', 'true');
+      $('#t' + btn.dataset.t).classList.add('on');
     };
   });
 
-  $('#wk').onchange = e => {
+  $('#open-menu-modal').onclick = () => { renderMenuModal(); $('#menu-modal').showModal(); };
+  $('#close-menu-modal').onclick = () => $('#menu-modal').close();
+  $('#close-menu-modal-btn').onclick = () => $('#menu-modal').close();
+
+  $('#wk').addEventListener('change', e => {
     const t = e.target;
     const d = t.dataset;
-    if (d.e !== undefined) {
-      state.plan[d.e].e = t.checked;
-      state.plan[d.e].customItems = null;
-    }
-    if (d.b !== undefined) {
-      state.plan[d.b].b = t.value;
-      state.plan[d.b].customItems = null;
-    }
-    if (d.c !== undefined) {
-      state.plan[d.c].c = t.value;
-      state.plan[d.c].customItems = null;
-    }
-    if (d.n !== undefined) {
-      state.plan[d.n].n = t.value;
-      state.plan[d.n].customItems = null;
-    }
-    saveState();
-    renderWeek();
-    renderShop();
-  };
+    if (d.e !== undefined) state.plan[d.e].e = t.checked;
+    if (d.b !== undefined) state.plan[d.b].b = t.value;
+    if (d.a !== undefined) state.plan[d.a].a = t.value;
+    if (d.c !== undefined) state.plan[d.c].c = t.value;
+    if (d.m !== undefined) state.plan[d.m].m = t.value;
+    if (d.n !== undefined) state.plan[d.n].n = t.value;
+    adjustPortionsToTargets(false);
+  });
 
-  $('#rnd').onclick = generateBalancedWeek;
+  $('#btn-adjust').onclick = () => adjustPortionsToTargets(true);
 
   $('#clr').onclick = () => {
-    state.plan.forEach(day => { day.c = ''; day.n = ''; day.customItems = null; });
-    saveState();
-    renderAll();
+    if (confirm('¿Vaciar todos los platos de la semana?')) {
+      state.plan.forEach(day => { 
+        day.b = ''; day.a = ''; day.c = ''; day.m = ''; day.n = '';
+        day.customMeals = null; day.customItems = null; 
+      });
+      saveState();
+      renderAll();
+    }
   };
 
-  // Eventos Modal Menú Semanal
-  const modal = $('#menu-modal');
-  $('#open-menu-modal').onclick = () => {
-    renderMenuModal();
-    modal.showModal();
-  };
-  $('#close-menu-modal').onclick = () => modal.close();
-  $('#close-menu-modal-btn').onclick = () => modal.close();
-
-  $('#shop').onchange = e => {
-    state.chk[e.target.dataset.k] = e.target.checked;
-    saveState();
-    renderShop();
-  };
+  $('#shop').addEventListener('change', e => {
+    if (e.target.dataset.s) {
+      state.chk[e.target.dataset.s] = e.target.checked;
+      saveState();
+    }
+  });
 
   $('#un').onclick = () => {
     state.chk = {};
@@ -448,150 +363,52 @@ function bindEvents() {
   };
 
   $('#cp').onclick = () => {
-    const foods = getAllFoods();
     const totals = {};
     state.plan.forEach(d => getDayItems(d).forEach(([name, g]) => totals[name] = (totals[name] || 0) + g));
     const lines = Object.keys(totals).sort().map(name => {
-      const f = foods[name] || {};
-      const u = f.u ? ' (≈ ' + (totals[name] / f.u).toFixed(1) + ' ' + f.un + ')' : '';
-      return '- ' + name + ': ' + totals[name] + ' g' + u;
+      const g = totals[name];
+      const qty = g >= 1000 ? (g/1000).toFixed(2) + ' kg' : r(g) + ' g';
+      return '- ' + name + ': ' + qty;
     });
-    const text = 'LISTA DE LA COMPRA:\n\n' + lines.join('\n');
-    navigator.clipboard?.writeText(text).then(() => alert('Lista copiada al portapapeles.'));
+    navigator.clipboard.writeText(lines.join('\n')).then(() => alert('Lista copiada al portapapeles.'));
   };
 
-  $('#ar').onclick = () => addRow();
-  $('#dr').oninput = previewCurrentDish;
-  $('#dr').onclick = e => {
-    if (e.target.tagName === 'BUTTON') {
-      e.target.closest('.row').remove();
-      previewCurrentDish();
-    }
-  };
-
-  $('#ds').onclick = () => {
-    const name = $('#dn').value.trim();
-    const rows = $$('#dr .row').map(row => [
-      row.querySelector('.ing-name').value.trim(),
-      +row.querySelector('.w').value || 0
-    ]).filter(([n, w]) => n && w > 0);
-
-    if (!name || !rows.length) return alert('Introduce un nombre y al menos un ingrediente válido.');
-
-    if (editingDish && editingDish !== name) {
-      state.dishes = state.dishes.filter(d => d.n !== editingDish);
-      state.plan.forEach(d => {
-        if (d.b === editingDish) d.b = name;
-        if (d.c === editingDish) d.c = name;
-        if (d.n === editingDish) d.n = name;
-      });
-    }
-
-    state.dishes = state.dishes.filter(d => d.n !== name);
-    state.del = state.del.filter(x => x !== name);
-    state.dishes.push({ n: name, t: $('#dt').value, i: rows });
-
-    saveState();
-    resetDishForm();
-    renderAll();
-  };
-
-  $('#xc').onclick = resetDishForm;
-
-  $('#dl').onclick = e => {
-    const btn = e.target.closest('button');
-    if (!btn) return;
-    const name = btn.dataset.ed || btn.dataset.del;
-
-    if (btn.dataset.del && confirm('¿Eliminar "' + name + '"?')) {
-      state.dishes = state.dishes.filter(d => d.n !== name);
-      if (!state.del.includes(name)) state.del.push(name);
-      state.plan.forEach(d => {
-        if (d.b === name) d.b = '';
-        if (d.c === name) d.c = '';
-        if (d.n === name) d.n = '';
-        d.customItems = null;
-      });
-      saveState();
-      renderAll();
-    }
-
-    if (btn.dataset.ed) {
-      const dish = getAllDishes().find(d => d.n === name);
-      if (!dish) return;
-      editingDish = dish.n;
-      $('#dn').value = dish.n;
-      $('#dt').value = dish.t;
-      $('#dr').innerHTML = '';
-      dish.i.forEach(([n, w]) => addRow(n, w));
-      $('#ds').textContent = 'Guardar cambios';
-      $('#xc').style.display = 'inline-block';
-      $('#ft').textContent = '✏️ Editar plato';
-      $('#dish-form-card').scrollIntoView({ behavior: 'smooth' });
-    }
-  };
-
-  $('#fs').onclick = () => {
-    const name = $('#fn').value.trim();
-    if (!name) return alert('Indica el nombre del alimento.');
-    const num = id => +$('#' + id).value || 0;
-
-    state.foods[name] = {
-      cat: $('#fc').value.trim() || 'Otros',
-      k: num('fk'),
-      p: num('fp'),
-      g: num('fg'),
-      gSat: num('fsat'),
-      h: num('fh'),
-      az: num('faz'),
-      fib: num('ffib'),
-      u: num('fu'),
-      un: $('#fx').value.trim()
-    };
-
-    saveState();
-    ['fn', 'fc', 'fk', 'fp', 'fg', 'fsat', 'fh', 'faz', 'ffib', 'fu', 'fx'].forEach(id => $('#' + id).value = '');
-    renderAll();
-    alert('Alimento "' + name + '" guardado.');
-  };
-
-  const settingsMapping = [
-    ['tk', 'k'], ['tp', 'p'], ['tg', 'g'], ['th', 'h'],
-    ['tsat', 'gSat'], ['taz', 'az'], ['tfib', 'fib'], ['tm', 'm']
-  ];
-  settingsMapping.forEach(([id, key]) => {
-    $('#' + id).oninput = e => {
-      state.t[key] = +e.target.value || 0;
-      saveState();
-      renderWeek();
+  ['tk', 'tp', 'tg', 'th', 'tgs', 'taz', 'tfb', 'tm'].forEach(id => {
+    $('#' + id).onchange = () => {
+      state.t.k = +$('#tk').value || 2100;
+      state.t.p = +$('#tp').value || 230;
+      state.t.g = +$('#tg').value || 70;
+      state.t.h = +$('#th').value || 140;
+      state.t.gSat = +$('#tgs').value || 22;
+      state.t.az = +$('#taz').value || 35;
+      state.t.fib = +$('#tfb').value || 30;
+      state.t.m = +$('#tm').value || 5;
+      adjustPortionsToTargets(false);
     };
   });
 
   $('#bd').onclick = () => {
-    const blob = new Blob([JSON.stringify({ app: 'menu-nutricional', v: 8, state }, null, 2)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'menu-nutricional-backup-' + new Date().toISOString().slice(0, 10) + '.json';
+    a.download = 'menu-semanal-backup.json';
     a.click();
     URL.revokeObjectURL(url);
   };
 
-  $('#bi').onclick = () => $('#bf').click();
-  $('#bf').onchange = e => {
+  $('#bi').onclick = () => $('#fi').click();
+  $('#fi').onchange = e => {
     const file = e.target.files[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = () => {
+    reader.onload = ev => {
       try {
-        const json = JSON.parse(reader.result);
-        if (json.state) {
-          Object.assign(state, json.state);
-          saveState();
-          syncSettingsInputs();
-          renderAll();
-          alert('Copia de seguridad restaurada correctamente.');
-        }
+        const data = JSON.parse(ev.target.result);
+        Object.assign(state, data);
+        saveState();
+        renderAll();
+        alert('Datos importados correctamente.');
       } catch (err) {
         alert('Archivo JSON no válido.');
       }
@@ -600,21 +417,122 @@ function bindEvents() {
   };
 
   $('#rs').onclick = () => {
-    if (confirm('¿Restablecer datos y cargar los valores por defecto?')) {
+    if (confirm('¿Restablecer datos por defecto?')) {
       localStorage.clear();
       location.reload();
     }
   };
+
+  let ingRows = [];
+  function renderIngRows() {
+    const foods = getAllFoods();
+    const foodOptions = Object.keys(foods).sort().map(f => '<option value="' + esc(f) + '">' + esc(f) + '</option>').join('');
+    $('#ing-list').innerHTML = ingRows.map((row, idx) => 
+      '<div style="display:flex;gap:8px;margin-bottom:6px;">' +
+        '<select data-ii="' + idx + '" style="flex:2"><option value="">— Alimento —</option>' + foodOptions + '</select>' +
+        '<input type="number" data-iw="' + idx + '" value="' + (row.w || '') + '" placeholder="Gramos" style="flex:1">' +
+        '<button class="btn r x" data-ri="' + idx + '">✕</button>' +
+      '</div>'
+    ).join('');
+
+    ingRows.forEach((row, idx) => {
+      const sel = $('[data-ii="' + idx + '"]');
+      if (sel) sel.value = row.n || '';
+    });
+  }
+
+  $('#ar').onclick = () => {
+    ingRows.push({ n: '', w: 100 });
+    renderIngRows();
+  };
+
+  $('#ing-list').addEventListener('change', e => {
+    if (e.target.dataset.ii !== undefined) ingRows[e.target.dataset.ii].n = e.target.value;
+    if (e.target.dataset.iw !== undefined) ingRows[e.target.dataset.iw].w = +e.target.value;
+  });
+
+  $('#ing-list').addEventListener('click', e => {
+    if (e.target.dataset.ri !== undefined) {
+      ingRows.splice(e.target.dataset.ri, 1);
+      renderIngRows();
+    }
+  });
+
+  $('#ds').onclick = () => {
+    const n = $('#dn').value.trim();
+    const t = $('#dt').value;
+    const items = ingRows.filter(r => r.n && r.w > 0).map(r => [r.n, r.w]);
+    if (!n || !items.length) return alert('Indica un nombre y al menos un ingrediente.');
+
+    if (editingDishIndex !== null) {
+      state.dishes[editingDishIndex] = { n, t, i: items };
+      editingDishIndex = null;
+      $('#xc').style.display = 'none';
+      $('#form-dish-title').textContent = 'Nuevo / Editar plato';
+    } else {
+      state.dishes.push({ n, t, i: items });
+    }
+
+    saveState();
+    $('#dn').value = '';
+    ingRows = [];
+    renderIngRows();
+    renderDishes();
+    renderWeek();
+  };
+
+  $('#xc').onclick = () => {
+    editingDishIndex = null;
+    $('#dn').value = '';
+    ingRows = [];
+    renderIngRows();
+    $('#xc').style.display = 'none';
+    $('#form-dish-title').textContent = 'Nuevo / Editar plato';
+  };
+
+  $('#dish-list').addEventListener('click', e => {
+    if (e.target.dataset.ed !== undefined) {
+      editingDishIndex = +e.target.dataset.ed;
+      const d = state.dishes[editingDishIndex];
+      $('#dn').value = d.n;
+      $('#dt').value = d.t;
+      ingRows = d.i.map(([n, w]) => ({ n, w }));
+      renderIngRows();
+      $('#xc').style.display = 'inline-block';
+      $('#form-dish-title').textContent = 'Editando plato: ' + d.n;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    if (e.target.dataset.dd !== undefined) {
+      if (confirm('¿Eliminar este plato?')) {
+        state.dishes.splice(+e.target.dataset.dd, 1);
+        saveState();
+        renderDishes();
+        renderWeek();
+      }
+    }
+  });
+
+  $('#fs').onclick = () => {
+    const n = $('#fn').value.trim();
+    if (!n) return alert('Nombre obligatorio');
+    state.foods[n] = {
+      cat: $('#fc').value.trim() || 'Otros',
+      k: +$('#fk').value || 0,
+      p: +$('#fp').value || 0,
+      g: +$('#fg').value || 0,
+      gSat: +$('#fgs').value || 0,
+      h: +$('#fh').value || 0,
+      az: +$('#faz').value || 0,
+      fib: +$('#ffb').value || 0,
+      u: +$('#fu').value || 0,
+      un: $('#fun').value.trim() || ''
+    };
+    saveState();
+    alert('Alimento guardado');
+    renderDishes();
+  };
 }
 
-function resetDishForm() {
-  editingDish = null;
-  $('#dn').value = '';
-  $('#dr').innerHTML = '';
-  addRow();
-  $('#ds').textContent = 'Guardar plato';
-  $('#xc').style.display = 'none';
-  $('#ft').textContent = '➕ Nuevo plato';
-}
-
-document.addEventListener('DOMContentLoaded', init);
+loadState();
+renderAll();
+setupEvents();

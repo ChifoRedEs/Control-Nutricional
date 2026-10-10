@@ -1,7 +1,7 @@
 import { DEFAULT_FOODS } from './data/foods.js';
 import { DEFAULT_DISHES } from './data/dishes.js';
 
-const STORAGE_KEY = 'menu_nutricional_v8';
+const STORAGE_KEY = 'menu_nutricional_v12';
 
 export const state = {
   foods: {},
@@ -11,34 +11,38 @@ export const state = {
   t: { k: 2100, p: 230, g: 70, h: 140, gSat: 22, az: 35, fib: 30, m: 5 },
   plan: Array.from({ length: 7 }, () => ({
     b: 'Desayuno clásico: Avena, matcha, aguacate y jamón cocido',
+    a: 'Tostada con queso fresco 0% y pavo extra',
     c: '',
+    m: 'Yogur proteico con arándanos y nueces',
     n: '',
     e: false,
-    customItems: null // Aquí guardamos los gramos reales reescalados
+    customMeals: null,
+    customItems: null
   }))
 };
 
 export function loadState() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY) || 
-                localStorage.getItem('menu_nutricional_v6') || 
-                localStorage.getItem('mp1');
+    const raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem('menu_nutricional_v8');
     if (!raw) return;
     const loaded = JSON.parse(raw);
 
     Object.assign(state, {
       ...loaded,
       t: { ...state.t, ...(loaded.t || {}) },
-      plan: loaded.plan?.length === 7 ? loaded.plan.map(p => ({
+      plan: loaded.plan?.length === 7 ? loaded.plan.map((p, i) => ({
         b: p.b || 'Desayuno clásico: Avena, matcha, aguacate y jamón cocido',
+        a: p.a || 'Tostada con queso fresco 0% y pavo extra',
         c: p.c || '',
+        m: p.m || 'Yogur proteico con arándanos y nueces',
         n: p.n || '',
         e: !!p.e,
+        customMeals: p.customMeals || null,
         customItems: p.customItems || null
       })) : state.plan
     });
   } catch (e) {
-    console.warn("Error al cargar state:", e);
+    console.warn("Error cargando state:", e);
   }
 }
 
@@ -46,12 +50,14 @@ export function saveState() {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   } catch (e) {
-    console.error("Error al persistir state:", e);
+    console.error("Error guardando state:", e);
   }
 }
 
 export function getAllFoods() {
-  return { ...DEFAULT_FOODS, ...state.foods };
+  const merged = { ...DEFAULT_FOODS, ...state.foods };
+  state.del.forEach(name => delete merged[name]);
+  return merged;
 }
 
 export function getAllDishes() {
