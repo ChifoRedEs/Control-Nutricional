@@ -1,7 +1,7 @@
 import { DEFAULT_FOODS } from './data/foods.js';
 import { DEFAULT_DISHES } from './data/dishes.js';
 
-const STORAGE_KEY = 'menu_nutricional_v12';
+const STORAGE_KEY = 'menu_nutricional_v14';
 
 export const state = {
   foods: {},
@@ -12,9 +12,9 @@ export const state = {
   plan: Array.from({ length: 7 }, () => ({
     b: 'Desayuno clásico: Avena, matcha, aguacate y jamón cocido',
     a: 'Tostada con queso fresco 0% y pavo extra',
-    c: '',
+    c: 'Asado de pollo con verduras y patatas',
     m: 'Yogur proteico con arándanos y nueces',
-    n: '',
+    n: 'Lomo de merluza con patata cocida y ensalada mixta',
     e: false,
     customMeals: null,
     customItems: null
@@ -30,12 +30,12 @@ export function loadState() {
     Object.assign(state, {
       ...loaded,
       t: { ...state.t, ...(loaded.t || {}) },
-      plan: loaded.plan?.length === 7 ? loaded.plan.map((p, i) => ({
+      plan: loaded.plan?.length === 7 ? loaded.plan.map((p) => ({
         b: p.b || 'Desayuno clásico: Avena, matcha, aguacate y jamón cocido',
         a: p.a || 'Tostada con queso fresco 0% y pavo extra',
-        c: p.c || '',
+        c: p.c || 'Asado de pollo con verduras y patatas',
         m: p.m || 'Yogur proteico con arándanos y nueces',
-        n: p.n || '',
+        n: p.n || 'Lomo de merluza con patata cocida y ensalada mixta',
         e: !!p.e,
         customMeals: p.customMeals || null,
         customItems: p.customItems || null
