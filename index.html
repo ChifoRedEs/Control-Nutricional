@@ -31,6 +31,8 @@
         <button type="button" class="btn s" id="open-menu-modal">📋 Ver Menú Completo</button>
         <button type="button" class="btn r" id="clr">Vaciar</button>
       </div>
+      <!-- Sub-pestañas de días (Lun…Dom): solo se muestra el día elegido -->
+      <nav class="sub-tabs days" id="day-tabs" role="tablist" aria-label="Días de la semana"></nav>
       <div id="wk"></div>
       <div class="card summary" id="wk-sum"></div>
     </section>
@@ -47,8 +49,12 @@
 
     <!-- ═════════ PESTAÑA 3: PLATOS ═════════ -->
     <section id="tc" class="tab" role="tabpanel">
-      <div class="card" id="dish-form">
-        <h3 id="form-dish-title">Nuevo plato</h3>
+      <!-- Sub-pestañas por tipo de comida -->
+      <nav class="sub-tabs types" id="dish-tabs" role="tablist" aria-label="Tipo de plato"></nav>
+
+      <!-- Formulario plegable: se abre al pulsar o al editar un plato -->
+      <details class="card form-card" id="dish-form">
+        <summary id="form-dish-title">➕ Nuevo plato</summary>
         <label for="dn">Nombre del plato</label>
         <input type="text" id="dn" placeholder="Ej. Bowl proteico de frutas">
 
@@ -69,7 +75,7 @@
           <button type="button" class="btn" id="ds">Guardar plato</button>
           <button type="button" class="btn s" id="xc" style="display:none">Cancelar</button>
         </div>
-      </div>
+      </details>
       <div id="dish-list"></div>
     </section>
 
@@ -77,6 +83,13 @@
     <section id="td" class="tab" role="tabpanel">
       <div class="card">
         <h3>Objetivos nutricionales diarios</h3>
+        <label for="tmode">Cálculo de objetivos</label>
+        <select id="tmode">
+          <option value="perdida">Automático · Pérdida de peso</option>
+          <option value="mantenimiento">Automático · Mantenimiento</option>
+          <option value="manual">Manual (editar cada valor)</option>
+        </select>
+        <p class="mm" id="mode-info"></p>
         <div class="grid-2">
           <div><label for="tk">Calorías (kcal)</label><input type="number" id="tk" min="1000" max="5000"></div>
           <div><label for="tp">Proteína (g)</label><input type="number" id="tp" min="20" max="400"></div>
@@ -105,6 +118,7 @@
           <div><label for="ffb">Fibra (g)</label><input type="number" id="ffb" min="0"></div>
           <div><label for="fu">Peso por unidad (g, opc.)</label><input type="number" id="fu" min="0"></div>
           <div><label for="fun">Nombre de la unidad (opc.)</label><input type="text" id="fun"></div>
+          <div><label for="fgr">Grupo en la compra (opc.)</label><input type="text" id="fgr" placeholder="Ej. Pollo"></div>
         </div>
         <datalist id="food-names"></datalist>
         <button type="button" class="btn mt-2" id="fs">Guardar alimento</button>
