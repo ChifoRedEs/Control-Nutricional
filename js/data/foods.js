@@ -36,6 +36,7 @@ export const DEFAULT_FOODS = {
   "Mozzarella": { cat: "Huevos y lácteos", k: 250, p: 18, g: 19, gSat: 12, h: 1.5, az: 1, fib: 0, u: 0, un: "" },
   "Queso rallado": { cat: "Huevos y lácteos", k: 350, p: 25, g: 27, gSat: 17, h: 1.5, az: 0.5, fib: 0, u: 0, un: "" },
   "Yogur proteico": { cat: "Huevos y lácteos", k: 60, p: 10, g: 0.2, gSat: 0.1, h: 4.5, az: 4.0, fib: 0, u: 120, un: "yogures" },
+  "Proteína whey isolate": { cat: "Suplementos", k: 360, p: 90, g: 0, gSat: 0, h: 0, az: 0, fib: 0, u: 35, un: "cacitos" },
   "Proteína de suero (Whey)": { cat: "Huevos y lácteos", k: 380, p: 78, g: 4, gSat: 2.5, h: 6, az: 4, fib: 0, u: 30, un: "cacitos" },
 
   "Pan": { cat: "Cereales, pan y pasta", k: 265, p: 8.5, g: 1.5, gSat: 0.3, h: 52, az: 2.5, fib: 3.5, u: 0, un: "" },

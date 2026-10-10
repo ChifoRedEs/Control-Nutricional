@@ -35,6 +35,18 @@ export const DEFAULT_DISHES = [
   { n: "Arroz meloso con pollo, verduras y azafrán", t: "comida", i: [["Pechuga de pollo", 200], ["Arroz (seco)", 70], ["Tomate", 80], ["Pimiento rojo", 50], ["Judías verdes", 60], ["Aceite de oliva", 10]] },
   { n: "Pasta salteada con ternera picada y sofrito casero", t: "comida", i: [["Pasta (seca)", 65], ["Ternera magra", 170], ["Sofrito de tomate", 60], ["Calabacín", 60], ["Aceite de oliva", 8]] },
 
+  // --- COMIDAS ALTAS EN HIDRATOS (mantenimiento) ---
+  { n: "Arroz salteado con pollo, guisantes y zanahoria", t: "comida", i: [["Arroz (seco)", 100], ["Pechuga de pollo", 170], ["Guisantes", 50], ["Zanahoria", 50], ["Pimiento rojo", 50], ["Aceite de oliva", 12]] },
+  { n: "Espaguetis a la boloñesa con queso", t: "comida", i: [["Pasta (seca)", 110], ["Ternera magra", 140], ["Sofrito de tomate", 80], ["Cebolla", 40], ["Zanahoria", 30], ["Queso rallado", 10], ["Aceite de oliva", 8]] },
+  { n: "Patatas guisadas con merluza y guisantes", t: "comida", i: [["Patata", 350], ["Merluza", 200], ["Guisantes", 40], ["Cebolla", 40], ["Pimiento verde", 30], ["Ajo", 5], ["Aceite de oliva", 12]] },
+  { n: "Bowl de quinoa con salmón, maíz y aguacate", t: "comida", i: [["Quinoa cocida", 330], ["Salmón", 130], ["Maíz cocido", 60], ["Tomate", 80], ["Aguacate", 20], ["Aceite de oliva", 3]] },
+  { n: "Lentejas estofadas con arroz y verduras", t: "comida", i: [["Lentejas (secas)", 80], ["Arroz (seco)", 40], ["Patata", 100], ["Zanahoria", 50], ["Pimiento rojo", 30], ["Cebolla", 30], ["Sofrito de tomate", 30], ["Jamón serrano", 30], ["Aceite de oliva", 10]] },
+  { n: "Gnocchi gratinados con pollo, tomate y mozzarella", t: "comida", i: [["Gnocchi", 300], ["Pechuga de pollo", 150], ["Sofrito de tomate", 60], ["Mozzarella", 30], ["Aceite de oliva", 8]] },
+  { n: "Macarrones con atún y tomate", t: "comida", i: [["Pasta (seca)", 110], ["Atún al natural", 104], ["Sofrito de tomate", 80], ["Cebolla", 30], ["Queso rallado", 10], ["Aceite de oliva", 10]] },
+  { n: "Pizza casera de pollo y verduras", t: "comida", i: [["Pizza base con tomate", 250], ["Pollo en tiras", 120], ["Pimiento rojo", 40], ["Cebolla", 30], ["Mozzarella", 40]] },
+  { n: "Hamburguesa de ternera en pan con patatas al horno", t: "comida", i: [["Hamburguesa de ternera", 180], ["Pan", 80], ["Patata", 250], ["Tomate", 40], ["Lechuga", 20], ["Aceite de oliva", 8]] },
+  { n: "Arroz con solomillo de cerdo y pimientos", t: "comida", i: [["Arroz (seco)", 100], ["Solomillo de cerdo", 170], ["Pimiento rojo", 60], ["Pimiento verde", 40], ["Cebolla", 40], ["Aceite de oliva", 12]] },
+
   // --- MERIENDAS / MEDIA TARDE (5) ---
   { n: "Yogur proteico con arándanos y nueces", t: "merienda", i: [["Yogur proteico", 150], ["Arándanos congelados", 80], ["Nueces", 15]] },
   { n: "Batido de proteína whey con crema de cacahuete", t: "merienda", i: [["Proteína de suero (Whey)", 30], ["Bebida de avena", 200], ["Crema de cacahuete", 15]] },
@@ -52,5 +64,17 @@ export const DEFAULT_DISHES = [
   { n: "Lomo de merluza con patata cocida y ensalada mixta", t: "cena", i: [["Merluza", 220], ["Patata", 100], ["Tomate", 70], ["Lechuga", 40], ["Cebolla", 30], ["Aceite de oliva", 10]] },
   { n: "Revuelto de huevos con calabacín y gambas/pavo", t: "cena", i: [["Huevo", 110], ["Fiambre de pavo", 80], ["Calabacín", 120], ["Cebolla", 30], ["Aceite de oliva", 10]] },
   { n: "Ensalada campera ligera con atún y huevo", t: "cena", i: [["Patata", 100], ["Atún en aceite", 60], ["Huevo", 55], ["Tomate", 70], ["Pimiento verde", 40], ["Aceite de oliva", 10]] },
-  { n: "Pechuga de pollo a la plancha con verduras salteadas", t: "cena", i: [["Pechuga de pollo", 220], ["Calabacín", 90], ["Pimiento rojo", 60], ["Zanahoria", 40], ["Aceite de oliva", 10]] }
+  { n: "Pechuga de pollo a la plancha con verduras salteadas", t: "cena", i: [["Pechuga de pollo", 220], ["Calabacín", 90], ["Pimiento rojo", 60], ["Zanahoria", 40], ["Aceite de oliva", 10]] },
+
+  // --- CENAS ALTAS EN HIDRATOS (mantenimiento) ---
+  { n: "Pizza de jamón cocido y mozzarella", t: "cena", i: [["Pizza base con tomate", 180], ["Jamón cocido", 70], ["Mozzarella", 30]] },
+  { n: "Tortilla de patatas con claras, ensalada y pan", t: "cena", i: [["Patata", 250], ["Huevo", 110], ["Claras de huevo", 60], ["Cebolla", 40], ["Aceite de oliva", 12], ["Lechuga", 50], ["Tomate", 80], ["Pan", 60]] },
+  { n: "Quinoa salteada con pavo y verduras", t: "cena", i: [["Quinoa cocida", 250], ["Pechuga de pavo", 130], ["Calabacín", 80], ["Pimiento rojo", 50], ["Aceite de oliva", 8]] },
+  { n: "Fajitas de pollo con pimientos y maíz", t: "cena", i: [["Torta de fajita", 120], ["Pollo en tiras", 130], ["Pimiento rojo", 40], ["Pimiento verde", 40], ["Cebolla", 40], ["Maíz cocido", 40], ["Aceite de oliva", 6]] },
+  { n: "Merluza al horno con patatas panaderas", t: "cena", i: [["Merluza", 200], ["Patata", 300], ["Cebolla", 50], ["Aceite de oliva", 12]] },
+  { n: "Ensalada de pasta con pollo y queso fresco", t: "cena", i: [["Pasta (seca)", 80], ["Pechuga de pollo", 120], ["Tomate", 80], ["Maíz cocido", 40], ["Lechuga", 40], ["Queso fresco 0%", 50], ["Aceite de oliva", 8]] },
+  { n: "Arroz tres delicias casero", t: "cena", i: [["Arroz (seco)", 80], ["Huevo", 55], ["Jamón cocido", 70], ["Guisantes", 40], ["Zanahoria", 40], ["Maíz cocido", 30], ["Aceite de oliva", 8]] },
+  { n: "Bocadillo de pavo y queso fresco con fruta", t: "cena", i: [["Pan", 120], ["Fiambre de pavo", 80], ["Queso fresco 0%", 60], ["Tomate", 50], ["Aceite de oliva", 5], ["Pieza de fruta", 150]] },
+  { n: "Salmón con arroz y calabacín salteado", t: "cena", i: [["Salmón", 120], ["Arroz (seco)", 90], ["Calabacín", 120], ["Aceite de oliva", 5]] },
+  { n: "Patatas asadas rellenas de atún, maíz y queso fresco", t: "cena", i: [["Patata", 350], ["Atún al natural", 104], ["Maíz cocido", 40], ["Queso fresco 0%", 50], ["Aceite de oliva", 5]] }
 ];
