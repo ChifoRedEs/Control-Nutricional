@@ -13,6 +13,7 @@ import {
 import { calcNutrients, formatNutrientSummary, emptyNutrients } from './nutrition.js';
 import { computeWeek, tolerance, MEALS, OUT, POST_WORKOUT, ALL_KEYS } from './engine.js';
 import { MEAL_TYPES } from './data/dishes.js';
+import { pickDayDishes } from './planner.js';
 import { shopGroupOf } from './data/shopGroups.js';
 import { TARGET_MODES, targetsFromKcal } from './targets.js';
 
@@ -94,6 +95,8 @@ function renderWeek() {
   const dishes = getAllDishes();
   const foods = getAllFoods();
   const names = new Set(dishes.map(d => d.n));
+
+  $('#btn-auto').textContent = `🎲 Elegir platos del ${DAYS[selDay].toLowerCase()}`;
 
   // Sub-pestañas de días con indicador de estado (gris: vacío · verde: en objetivo · naranja: revisar)
   $('#day-tabs').innerHTML = state.plan.map((day, i) => {
@@ -263,15 +266,16 @@ function renderShop() {
       const done = !!state.chk[g.group];
       const id = 'shop-' + (idx++);
       const single = g.parts.length === 1 && g.parts[0].name === g.group;
-      // Desglose (solo si el grupo junta varios alimentos o tiene nombre distinto)
-      const detail = single
-        ? (unitsText(g.group, g.total, foods) ? `<em>${esc(unitsText(g.group, g.total, foods).trim())}</em>` : '')
-        : `<em>${g.parts.map(p => esc(p.name) + ' ' + formatQty(p.g) + esc(unitsText(p.name, p.g, foods))).join(' · ')}</em>`;
-      return `<label class="it${done ? ' d' : ''}" for="${id}">
+      const units = single ? unitsText(g.group, g.total, foods).trim() : '';
+      // Desglose: una línea por alimento (solo si el grupo junta varios o cambia el nombre)
+      const detail = single ? '' : `<ul class="it-parts">${g.parts.map(p =>
+        `<li><span>${esc(p.name)}</span><span>${formatQty(p.g)}${esc(unitsText(p.name, p.g, foods))}</span></li>`).join('')}</ul>`;
+      return `<div class="it${done ? ' d' : ''}">
         <input type="checkbox" id="${id}" data-item="${esc(g.group)}"${done ? ' checked' : ''}>
-        <span><span class="it-name">${esc(g.group)}</span>${detail}</span>
-        <b>${formatQty(g.total)}</b>
-      </label>`;
+        <label class="it-name" for="${id}">${esc(g.group)}${units ? `<small>${esc(units)}</small>` : ''}</label>
+        <b class="it-total">${formatQty(g.total)}</b>
+        ${detail}
+      </div>`;
     }).join('')}
   </div>`).join('');
 }
@@ -287,11 +291,10 @@ function renderDishes() {
 
   // Sub-pestañas por tipo de comida
   $('#dish-tabs').innerHTML = MEAL_TYPES.map(type => {
-    const n = dishes.filter(d => d.t === type).length;
     const [icon, ...rest] = TYPE_LABEL[type].split(' ');
     const name = rest.join(' ').replace(/ \(.*\)/, '');
     return `<button type="button" class="sub-tab${type === selType ? ' on' : ''}" data-type-tab="${type}" role="tab"
-      aria-selected="${type === selType}" title="${TYPE_LABEL[type]}"><span class="ico">${icon}</span>${name}<small>${n}</small></button>`;
+      aria-selected="${type === selType}" title="${TYPE_LABEL[type]}"><span class="ico">${icon}</span>${name}</button>`;
   }).join('');
 
   $('#dish-list').innerHTML = [selType].map(type => {
@@ -400,28 +403,46 @@ function deleteDish(name) {
 const TARGET_FIELDS = { tk: 'k', tp: 'p', tg: 'g', th: 'h', tgs: 'gSat', taz: 'az', tfb: 'fib', tm: 'm' };
 const FOOD_FIELDS = { fk: 'k', fp: 'p', fg: 'g', fgs: 'gSat', fh: 'h', faz: 'az', ffb: 'fib', fu: 'u' };
 
-/** Campos que se calculan solos a partir de las kcal cuando el modo no es manual. */
-const AUTO_FIELDS = ['tp', 'tg', 'th', 'tgs', 'taz', 'tfb'];
+/** Campos que calcula la fórmula a partir de las kcal. */
+const FORMULA_FIELDS = { p: 'Proteína', g: 'Grasas', h: 'Hidratos', gSat: 'Sat.', az: 'Azúcar', fib: 'Fibra' };
 
-/** Si el modo es automático, recalcula P/G/H y secundarios a partir de las kcal. */
-function applyTargetMode() {
-  const auto = targetsFromKcal(state.t.k, state.t.mode);
-  if (auto) Object.assign(state.t, auto);
+/**
+ * Botón «Calcular nutrientes»: aplica la fórmula elegida a las kcal escritas.
+ * Lee las kcal directamente del campo por si el usuario aún no ha salido de él.
+ */
+function applyFormula() {
+  const kcal = +$('#tk').value;
+  if (!(kcal >= 800)) return alert('Indica primero unas calorías válidas (mínimo 800 kcal).');
+  state.t.k = kcal;
+  state.t.mode = $('#tmode').value;
+  Object.assign(state.t, targetsFromKcal(kcal, state.t.mode));
+  saveState();
+  renderAll();
+  const t = state.t;
+  alert(`✅ Objetivos calculados (${TARGET_MODES[t.mode].label}, ${t.k} kcal):\n` +
+    `Proteína ${t.p} g · Grasas ${t.g} g · Hidratos ${t.h} g\n` +
+    `Sat. máx. ${t.gSat} g · Azúcar máx. ${t.az} g · Fibra mín. ${t.fib} g`);
 }
 
 function renderSettings() {
   Object.entries(TARGET_FIELDS).forEach(([id, k]) => { $('#' + id).value = state.t[k]; });
-  $('#tmode').value = state.t.mode || 'manual';
-  const split = TARGET_MODES[state.t.mode];
-  const auto = !!(split && split.p);
-  AUTO_FIELDS.forEach(id => { $('#' + id).readOnly = auto; });
-  $('#mode-info').textContent = auto
-    ? `Reparto: proteína ${split.p * 100} % · grasa ${split.g * 100} % · hidratos ${split.h * 100} %. ` +
-      'Grasa saturada y azúcar < 10 % de las kcal; fibra 14 g por cada 1000 kcal. Solo tienes que indicar las kcal.'
-    : 'Modo manual: edita cada objetivo por separado.';
+  $('#tmode').value = state.t.mode;
+  renderFormulaInfo();
   $('#aj').checked = !!state.adjust;
   $('#food-names').innerHTML = Object.keys(getAllFoods()).sort((a, b) => a.localeCompare(b, 'es'))
     .map(f => `<option value="${esc(f)}"></option>`).join('');
+}
+
+/** Texto bajo el desplegable: reparto de la fórmula y aviso si los valores actuales no coinciden. */
+function renderFormulaInfo() {
+  const mode = $('#tmode').value;
+  const split = TARGET_MODES[mode];
+  const expected = targetsFromKcal(+$('#tk').value || state.t.k, mode);
+  const differs = expected && Object.keys(FORMULA_FIELDS).some(k => Math.abs(expected[k] - state.t[k]) > 1);
+  $('#mode-info').innerHTML =
+    `Reparto: proteína ${Math.round(split.p * 100)} % · grasa ${Math.round(split.g * 100)} % · hidratos ${Math.round(split.h * 100)} %. ` +
+    'Grasa saturada y azúcar &lt; 10 % de las kcal; fibra 14 g por cada 1000 kcal.' +
+    (differs ? '<br><b class="warn-text">Los valores actuales no siguen esta fórmula: pulsa «Calcular nutrientes» para aplicarla.</b>' : '');
 }
 
 /** Al escribir el nombre de un alimento existente, rellena el formulario para editarlo. */
@@ -460,6 +481,19 @@ function renderAll() {
   renderDishes();
   renderSettings();
   if ($('#menu-modal').open) renderMenuModal();
+}
+
+/** Botón «Elegir platos del día»: propone los 5 platos del día seleccionado según los objetivos. */
+function autoPickDay() {
+  const day = state.plan[selDay];
+  const filled = MEALS.some(({ key }) => day[key] && day[key] !== OUT);
+  if (filled && !confirm(`¿Sustituir los platos del ${DAYS[selDay].toLowerCase()} por una propuesta automática?\n(Las tomas «Fuera de casa» se mantienen).`)) return;
+  const pick = pickDayDishes(selDay, state, getAllDishes(), getAllFoods());
+  if (!pick) return alert('No hay platos suficientes en alguna categoría, o todas las tomas están marcadas como «Fuera de casa».');
+  Object.assign(day, pick);
+  state.adjust = true; // la propuesta está pensada para usarse con las raciones ajustadas
+  saveState();
+  renderAll();
 }
 
 /** Botón "Ajustar raciones": activa el ajuste, recalcula e informa del resultado. */
@@ -520,6 +554,7 @@ function setupEvents() {
   });
 
   $('#btn-adjust').addEventListener('click', adjustAndReport);
+  $('#btn-auto').addEventListener('click', autoPickDay);
 
   $('#clr').addEventListener('click', () => {
     if (!confirm('¿Vaciar todos los platos de la semana?')) return;
@@ -543,6 +578,15 @@ function setupEvents() {
     if (e.target.checked) state.chk[name] = true; else delete state.chk[name];
     e.target.closest('.it').classList.toggle('d', e.target.checked);
     saveState();
+  });
+
+  // Tocar cualquier parte de la fila (desglose incluido) también tacha el grupo
+  $('#shop').addEventListener('click', e => {
+    const row = e.target.closest('.it');
+    if (!row || e.target.closest('input, label')) return;
+    const cb = row.querySelector('input[type="checkbox"]');
+    cb.checked = !cb.checked;
+    cb.dispatchEvent(new Event('change', { bubbles: true }));
   });
 
   $('#un').addEventListener('click', () => { state.chk = {}; saveState(); renderShop(); });
@@ -587,17 +631,18 @@ function setupEvents() {
     $('#' + id).addEventListener('change', e => {
       const v = +e.target.value;
       state.t[k] = v > 0 ? v : DEFAULT_TARGETS[k];
-      if (k === 'k') applyTargetMode(); // al cambiar las kcal se reparten los macros
       saveState();
       renderAll();
     });
   });
+  // La fórmula solo se aplica al pulsar el botón; aquí solo se guarda la elección.
   $('#tmode').addEventListener('change', e => {
     state.t.mode = e.target.value;
-    applyTargetMode();
     saveState();
-    renderAll();
+    renderFormulaInfo();
   });
+  $('#tk').addEventListener('input', renderFormulaInfo);
+  $('#calc-targets').addEventListener('click', applyFormula);
   $('#aj').addEventListener('change', e => { state.adjust = e.target.checked; saveState(); renderAll(); });
 
   // Ajustes: alimentos

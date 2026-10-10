@@ -1,12 +1,14 @@
 /**
- * targets.js — Cálculo automático de objetivos a partir de las kcal.
+ * targets.js — Fórmulas para calcular los objetivos a partir de las kcal.
  *
- * Repartos usados (todos dentro de los rangos AMDR de referencia:
- * proteína 10–35 %, grasa 20–35 %, hidratos 45–65 % de la energía):
- *   · Pérdida de peso : 30 % proteína · 25 % grasa · 45 % hidratos
- *     (proteína alta para preservar masa muscular en déficit)
- *   · Mantenimiento   : 25 % proteína · 30 % grasa · 45 % hidratos
+ * Repartos de la energía (todos dentro de los rangos AMDR de referencia:
+ * proteína 10–35 %, grasa 20–35 %, hidratos 45–65 %):
+ *   · Pérdida de peso         : 30 % proteína · 25 % grasa · 45 % hidratos
+ *     (proteína alta para conservar masa muscular en déficit)
+ *   · Mantenimiento           : 25 % proteína · 30 % grasa · 45 % hidratos
  *     (perfil habitual en personas que entrenan fuerza)
+ *   · Aumento de masa muscular: 25 % proteína · 25 % grasa · 50 % hidratos
+ *     (más hidratos para rendir en el entrenamiento y recuperar glucógeno)
  *
  * Secundarios (OMS / EFSA / IOM):
  *   · Grasa saturada  < 10 % de las kcal
@@ -19,13 +21,13 @@
 export const TARGET_MODES = {
   perdida: { label: 'Pérdida de peso', p: 0.30, g: 0.25, h: 0.45 },
   mantenimiento: { label: 'Mantenimiento', p: 0.25, g: 0.30, h: 0.45 },
-  manual: { label: 'Manual (editar cada valor)' }
+  volumen: { label: 'Aumento de masa muscular', p: 0.25, g: 0.25, h: 0.50 }
 };
 
-/** Devuelve { p, g, h, gSat, az, fib } para unas kcal y un modo, o null si el modo es manual. */
+/** Devuelve { p, g, h, gSat, az, fib } para unas kcal y una fórmula, o null si no es válida. */
 export function targetsFromKcal(kcal, mode) {
   const split = TARGET_MODES[mode];
-  if (!split || !split.p || !(kcal > 0)) return null;
+  if (!split || !(kcal > 0)) return null;
   return {
     p: Math.round((kcal * split.p) / 4),
     g: Math.round((kcal * split.g) / 9),

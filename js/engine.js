@@ -221,45 +221,54 @@ function solveDay(meals, target, foods, marginPct, bounds) {
 }
 
 /**
- * Calcula el plan completo de la semana (raciones finales por día y toma).
- * Devuelve, para cada día: { meals: {b:[...],...}, nut, target, adjusted }.
+ * Calcula UN día: objetivo efectivo, raciones finales por toma y nutrientes.
+ * @param {object} day     Día del plan ({b,a,c,m,n,e}).
+ * @param {object} state   Estado global (se usan state.t y state.adjust).
+ * @param {Map} byName     Mapa nombre → plato.
+ * @param {object} foods   Base de alimentos.
+ * @param {boolean} [forceAdjust]  Ajustar aunque el ajuste automático esté desactivado.
+ * @returns {{meals: object, nut: object, target: object, adjusted: boolean}}
+ */
+export function computeDay(day, state, byName, foods, forceAdjust = false) {
+  const target = dayTarget(day, state.t, n => byName.has(n));
+  const meals = MEALS.map(({ key }) => {
+    const v = day[key];
+    const dish = v && v !== OUT ? byName.get(v) : null;
+    return { key, items: dish ? dish.i.map(([n, g]) => [n, Number(g) || 0]) : [] };
+  });
+  // Día de entreno: batido fijo que se suma a las 5 comidas
+  meals.push({
+    key: POST_WORKOUT.key,
+    items: day.e ? POST_WORKOUT.items.map(([n, g]) => [n, g]) : [],
+    fixed: true
+  });
+
+  const anyDish = meals.some(m => !m.fixed && m.items.length);
+  const doAdjust = anyDish && (state.adjust || forceAdjust);
+  let result;
+  if (doAdjust) {
+    result = adjustDay(meals, target, foods, state.t.m);
+  } else {
+    result = {};
+    meals.forEach(m => { result[m.key] = m.items; });
+  }
+
+  const all = ALL_KEYS.flatMap(key => result[key] || []);
+  return { meals: result, nut: calcNutrients(all, foods), target, adjusted: doAdjust };
+}
+
+/**
+ * Calcula el plan completo de la semana (cada día de forma independiente).
  * @param {object} state  Estado global.
  * @param {Array} dishes  Lista de platos.
  * @param {object} foods  Base de alimentos.
  */
 export function computeWeek(state, dishes, foods) {
   const byName = new Map(dishes.map(d => [d.n, d]));
-  const hasDish = n => byName.has(n);
+  return state.plan.map(day => computeDay(day, state, byName, foods));
+}
 
-  return state.plan.map(day => {
-    const target = dayTarget(day, state.t, hasDish);
-    const meals = MEALS.map(({ key }) => {
-      const v = day[key];
-      const dish = v && v !== OUT ? byName.get(v) : null;
-      return { key, items: dish ? dish.i.map(([n, g]) => [n, Number(g) || 0]) : [] };
-    });
-    // Día de entreno: batido fijo que se suma a las 5 comidas
-    meals.push({
-      key: POST_WORKOUT.key,
-      items: day.e ? POST_WORKOUT.items.map(([n, g]) => [n, g]) : [],
-      fixed: true
-    });
-
-    const anyDish = meals.some(m => !m.fixed && m.items.length);
-    let result;
-    if (anyDish && state.adjust) {
-      result = adjustDay(meals, target, foods, state.t.m);
-    } else {
-      result = {};
-      meals.forEach(m => { result[m.key] = m.items; });
-    }
-
-    const all = ALL_KEYS.flatMap(key => result[key] || []);
-    return {
-      meals: result,
-      nut: calcNutrients(all, foods),
-      target,
-      adjusted: anyDish && !!state.adjust
-    };
-  });
+/** Error relativo máximo de kcal/P/G/H de un día frente a su objetivo (0 = perfecto). */
+export function dayError(res) {
+  return Math.max(...MACROS.map(mc => Math.abs(res.nut[mc] - res.target[mc]) / Math.max(1, res.target[mc])));
 }

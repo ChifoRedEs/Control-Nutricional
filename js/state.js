@@ -7,7 +7,7 @@
  *   del     : nombres de platos/alimentos por defecto que el usuario eliminó
  *   chk     : items tachados en la lista de la compra { nombre: true }
  *   t       : objetivos nutricionales diarios (m = margen de tolerancia ±%,
- *             mode = 'perdida' | 'mantenimiento' | 'manual')
+ *             mode = fórmula elegida: 'perdida' | 'mantenimiento' | 'volumen')
  *   adjust  : true → las raciones se ajustan automáticamente a los objetivos
  *   plan    : 7 días × { b, a, c, m, n, e }  (desayuno, almuerzo, comida, merienda, cena, entreno)
  *             e = true añade el batido post-entreno fijo (ver engine.js)
@@ -63,8 +63,9 @@ export function applyData(data) {
   state.t = { ...DEFAULT_TARGETS };
   if (data.t) {
     Object.keys(DEFAULT_TARGETS).forEach(k => { if (k !== 'mode' && +data.t[k] > 0) state.t[k] = +data.t[k]; });
-    // Datos de versiones anteriores (sin modo): se respetan sus valores en modo manual.
-    state.t.mode = ['perdida', 'mantenimiento', 'manual'].includes(data.t.mode) ? data.t.mode : 'manual';
+    // Fórmula elegida. Los valores guardados se respetan: la fórmula solo se
+    // aplica cuando el usuario pulsa «Calcular nutrientes» en Ajustes.
+    state.t.mode = ['perdida', 'mantenimiento', 'volumen'].includes(data.t.mode) ? data.t.mode : 'mantenimiento';
   }
   state.adjust = data.adjust !== false;
   state.plan = Array.isArray(data.plan) && data.plan.length === 7
