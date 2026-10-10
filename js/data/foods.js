@@ -1,3 +1,11 @@
+/**
+ * Base de alimentos por defecto.
+ * Valores por 100 g de producto:
+ *   k = kcal · p = proteína · g = grasa · gSat = grasa saturada
+ *   h = hidratos · az = azúcares · fib = fibra
+ *   u = peso de una unidad en g (0 si se compra a granel) · un = nombre de la unidad
+ * El usuario puede añadir o sobrescribir alimentos desde Ajustes (se guardan en state.foods).
+ */
 export const DEFAULT_FOODS = {
   "Bebida de avena": { cat: "Bebidas", k: 45, p: 1, g: 1.5, gSat: 0.2, h: 7.5, az: 4.5, fib: 0.8, u: 0, un: "" },
   "Vino blanco": { cat: "Bebidas", k: 82, p: 0.1, g: 0, gSat: 0, h: 2.6, az: 0.6, fib: 0, u: 0, un: "" },
@@ -12,9 +20,13 @@ export const DEFAULT_FOODS = {
   "Salchicha fresca": { cat: "Carnes y embutidos", k: 300, p: 14, g: 26, gSat: 9.5, h: 2, az: 0.5, fib: 0, u: 75, un: "unidades" },
   "Jamón cocido": { cat: "Carnes y embutidos", k: 105, p: 18, g: 3, gSat: 1.1, h: 1.5, az: 1, fib: 0, u: 0, un: "" },
   "Jamón serrano": { cat: "Carnes y embutidos", k: 200, p: 30, g: 8, gSat: 3, h: 0.5, az: 0.2, fib: 0, u: 0, un: "" },
+  "Pechuga de pavo": { cat: "Carnes y embutidos", k: 105, p: 24, g: 1, gSat: 0.3, h: 0, az: 0, fib: 0, u: 0, un: "" },
+  "Solomillo de cerdo": { cat: "Carnes y embutidos", k: 125, p: 22, g: 4, gSat: 1.4, h: 0, az: 0, fib: 0, u: 0, un: "" },
   "Fiambre de pavo": { cat: "Carnes y embutidos", k: 95, p: 19, g: 1.5, gSat: 0.5, h: 1.5, az: 1, fib: 0, u: 0, un: "" },
 
   "Merluza": { cat: "Pescado", k: 80, p: 17, g: 1, gSat: 0.2, h: 0, az: 0, fib: 0, u: 0, un: "" },
+  "Salmón": { cat: "Pescado", k: 200, p: 20, g: 13, gSat: 2.5, h: 0, az: 0, fib: 0, u: 0, un: "" },
+  "Atún al natural": { cat: "Pescado", k: 105, p: 24, g: 1, gSat: 0.3, h: 0, az: 0, fib: 0, u: 52, un: "latas" },
   "Atún en aceite": { cat: "Pescado", k: 190, p: 26, g: 9, gSat: 1.3, h: 0, az: 0, fib: 0, u: 60, un: "latas" },
 
   "Huevo": { cat: "Huevos y lácteos", k: 145, p: 12.5, g: 10, gSat: 3, h: 0.7, az: 0.4, fib: 0, u: 55, un: "huevos" },
@@ -55,6 +67,9 @@ export const DEFAULT_FOODS = {
   "Gazpacho": { cat: "Verduras", k: 45, p: 0.8, g: 3, gSat: 0.5, h: 3.5, az: 2.5, fib: 1, u: 0, un: "" },
 
   "Pieza de fruta": { cat: "Fruta", k: 50, p: 0.6, g: 0.2, gSat: 0, h: 11, az: 10, fib: 2.2, u: 150, un: "piezas" },
+  "Plátano": { cat: "Fruta", k: 90, p: 1.1, g: 0.3, gSat: 0.1, h: 20, az: 12, fib: 2.6, u: 120, un: "piezas" },
+  "Manzana": { cat: "Fruta", k: 52, p: 0.3, g: 0.2, gSat: 0, h: 12, az: 10, fib: 2.4, u: 180, un: "piezas" },
+  "Fresas": { cat: "Fruta", k: 33, p: 0.7, g: 0.3, gSat: 0, h: 6, az: 4.9, fib: 2, u: 0, un: "" },
   "Arándanos congelados": { cat: "Fruta", k: 45, p: 0.6, g: 0.3, gSat: 0, h: 9.5, az: 8, fib: 2.4, u: 0, un: "" },
   "Aguacate": { cat: "Fruta", k: 160, p: 2, g: 15, gSat: 2.1, h: 2, az: 0.5, fib: 7, u: 0, un: "" },
 

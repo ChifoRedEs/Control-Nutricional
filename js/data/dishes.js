@@ -1,5 +1,14 @@
+/**
+ * Platos por defecto.
+ *   n = nombre (identificador único) · t = categoría
+ *   i = ingredientes como [nombreAlimento, gramos] (ración base)
+ * Categorías válidas: desayuno · almuerzo · comida · merienda · cena
+ * No existen snacks fijos: las 5 tomas de cada día se eligen manualmente.
+ */
+export const MEAL_TYPES = ['desayuno', 'almuerzo', 'comida', 'merienda', 'cena'];
+
 export const DEFAULT_DISHES = [
-  // --- DESAYUNOS (6) ---
+  // --- DESAYUNOS ---
   { n: "Desayuno clásico: Avena, matcha, aguacate y jamón cocido", t: "desayuno", i: [["Bebida de avena", 200], ["Matcha", 4], ["Pan", 60], ["Aguacate", 50], ["Jamón cocido", 40]] },
   { n: "Tostadas con huevos revueltos, pavo y café", t: "desayuno", i: [["Pan", 70], ["Huevo", 110], ["Fiambre de pavo", 60], ["Aceite de oliva", 5], ["Café (solo o infusión)", 150]] },
   { n: "Tortitas proteicas de avena con yogur y arándanos", t: "desayuno", i: [["Copos de avena", 60], ["Huevo", 110], ["Yogur proteico", 120], ["Arándanos congelados", 80]] },
@@ -14,7 +23,7 @@ export const DEFAULT_DISHES = [
   { n: "Batido de proteína whey con bebida vegetal y fruta", t: "almuerzo", i: [["Proteína de suero (Whey)", 30], ["Bebida de avena", 200], ["Pieza de fruta", 130]] },
   { n: "Tosta de atún con tomate fresco y nueces", t: "almuerzo", i: [["Pan", 45], ["Atún en aceite", 60], ["Tomate", 60], ["Nueces", 10]] },
 
-  // --- COMIDAS (10) ---
+  // --- COMIDAS ---
   { n: "Huevo cocido + ensalada de arroz con atún", t: "comida", i: [["Huevo", 55], ["Atún en aceite", 60], ["Tomate", 50], ["Arroz (seco)", 65], ["Maíz cocido", 30], ["Zanahoria", 30], ["Pimiento rojo", 25], ["Guisantes", 20], ["Aceite de oliva", 10]] },
   { n: "Asado de pollo con verduras y patatas", t: "comida", i: [["Pollo muslo y contramuslo", 200], ["Tomate", 90], ["Patata", 90], ["Vino blanco", 60], ["Calabacín", 50], ["Cebolla", 50], ["Aceite de oliva", 15]] },
   { n: "Tortilla de patatas + salchicha a la plancha", t: "comida", i: [["Huevo", 110], ["Patata", 90], ["Aceite de oliva", 33], ["Salchicha fresca", 75]] },
@@ -33,7 +42,7 @@ export const DEFAULT_DISHES = [
   { n: "Tortitas con yogur proteico, fruta y cacahuete", t: "merienda", i: [["Tortita de arroz y legumbres", 15], ["Yogur proteico", 120], ["Pieza de fruta", 100], ["Crema de cacahuete", 10]] },
   { n: "Rollitos de pavo y queso fresco con fruta", t: "merienda", i: [["Fiambre de pavo", 70], ["Queso fresco 0%", 60], ["Pieza de fruta", 120]] },
 
-  // --- CENAS (10) ---
+  // --- CENAS ---
   { n: "Gazpacho + fajita de pollo desmenuzado", t: "cena", i: [["Gazpacho", 250], ["Pollo en tiras", 110], ["Torta de fajita", 70], ["Pimiento verde", 50], ["Pimiento rojo", 50], ["Cebolla", 50], ["Aceite de oliva", 10]] },
   { n: "Ensalada de canónigos + tortilla francesa de 2 huevos", t: "cena", i: [["Tomate", 90], ["Atún en aceite", 60], ["Canónigos", 40], ["Fiambre de pavo", 40], ["Queso fresco 0%", 35], ["Zanahoria", 30], ["Huevo", 110], ["Aceite de oliva", 20]] },
   { n: "Catalana (pan, jamón serrano y tomate)", t: "cena", i: [["Pan", 100], ["Jamón serrano", 60], ["Tomate", 45], ["Aceite de oliva", 5]] },
