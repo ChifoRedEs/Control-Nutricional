@@ -100,21 +100,49 @@ select:focus-visible, input:focus-visible, .btn:focus-visible { outline: 2px sol
   .chip b { font-size: 15px; }
 }
 
-/* ── Lista de la compra ── */
+/* ── Lista de la compra (agrupada por tipo) ──
+   Cuadrícula: [casilla] [nombre del grupo] [total]
+               [        desglose por alimento        ]                */
 .it {
-  display: flex;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) auto;
+  column-gap: 10px;
   align-items: center;
-  padding: 9px 0;
+  padding: 10px 0;
   border-bottom: 1px solid var(--ln);
-  font-size: 14px;
-  color: var(--tx);
   cursor: pointer;
 }
 .it:last-child { border-bottom: 0; }
-.it > span { flex: 1; }
-.it em { color: var(--mu); font-style: normal; font-size: 12px; }
-.it.d span, .it.d b { text-decoration: line-through; opacity: 0.45; }
+.it .it-name {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--tx);
+  cursor: pointer;
+  line-height: 1.3;
+}
+.it .it-name small { display: block; font-size: 12px; font-weight: 400; color: var(--mu); }
+.it .it-total { font-size: 15px; white-space: nowrap; text-align: right; }
+.it-parts {
+  grid-column: 2 / 4;
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 6px 0 0 10px;
+  border-left: 2px solid var(--ln);
+  display: grid;
+  row-gap: 3px;
+}
+.it-parts li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12.5px;
+  line-height: 1.35;
+  color: var(--mu);
+}
+.it-parts li span:first-child { min-width: 0; overflow-wrap: anywhere; }
+.it-parts li span:last-child { white-space: nowrap; text-align: right; }
+.it.d .it-name, .it.d .it-total, .it.d .it-parts { text-decoration: line-through; opacity: 0.45; }
 
 /* ── Platos ── */
 .group-title { font-size: 0.95rem; margin: 16px 0 8px; color: var(--ac); }
@@ -225,9 +253,6 @@ select:focus-visible, input:focus-visible, .btn:focus-visible { outline: 2px sol
 .dish-sub { font-size: 14px; margin: 2px 0 0; }
 
 /* ── Compra agrupada: nombre del grupo + desglose ── */
-.it > span { display: flex; flex-direction: column; }
-.it-name { font-weight: 500; }
-.it > span em { margin-top: 1px; }
 
 /* ── Formulario plegable de platos ── */
 .form-card > summary {
@@ -240,3 +265,11 @@ select:focus-visible, input:focus-visible, .btn:focus-visible { outline: 2px sol
 .form-card[open] > summary { margin-bottom: 10px; }
 .mm#mode-info { margin-bottom: 10px; }
 .sub-tab .train { position: absolute; top: 1px; right: 3px; font-size: 10px; }
+
+/* ── Botones principales de Semana en pareja ── */
+.actions.pair { margin-bottom: 8px; }
+.actions.pair .btn { flex: 1 1 45%; }
+.warn-text { color: var(--wa); font-weight: 600; }
+/* Ajustes: kcal + botón de cálculo en la misma fila */
+.calc-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: end; }
+.calc-row .btn { margin-bottom: 8px; padding: 9px 12px; }
